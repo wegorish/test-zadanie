@@ -4,6 +4,8 @@ window.DEMO_STATIC=true;
 'use strict';
 (async () => {
 const B=window.DEMO_BASE||'/kanctovar/', P=window.DEMO_PRODUCTS||[], STATIC=window.DEMO_STATIC===true;
+const M=window.OSM||{goal(){},ecommerce(){},item:p=>p};   // js/metrika.js: goals and e-commerce (METRIKA.md)
+const pageType=()=>(document.body.dataset.page||'').split(':')[0];
 const C=Object.assign({phone:'+7 (000) 000-00-00',phoneHref:'tel:+70000000000',email:'info@office-sklad.example',hours:'Пн–Пт 8:30–17:30',minOrder:5000,minPriceFrom:30000},window.OS_CONFIG||{});
 let state={cart:{},favorites:[],compare:[],orders:[],user:null},ready=false,saving=false,listFilter=null;   // listFilter: set by js/filter.js (price, properties)
 const $=(s,r=document)=>r.querySelector(s);
@@ -129,9 +131,24 @@ async function api(path,method='GET',body){
 }
 async function save(){
   saving=true;
-  try {state=await api('/state','PUT',{cart:state.cart,favorites:state.favorites,compare:state.compare,city:state.city||''});header();}
+  try {state=await api('/state','PUT',{cart:state.cart,favorites:state.favorites,compare:state.compare,city:state.city||''});header();trackCart();}
   finally {saving=false;}
 }
+// E-commerce add / remove: every saved change of the cart, as the difference from what Метрика last heard.
+let tracked={};
+function trackCart(){
+  const now=state.cart||{},add=[],remove=[];
+  for(const id of new Set([...Object.keys(tracked),...Object.keys(now)])){
+    const d=(now[id]||0)-(tracked[id]||0),p=product(id);if(!d||!p)continue;
+    (d>0?add:remove).push(M.item(p,Math.abs(d)));
+  }
+  if(add.length)M.ecommerce('add',{products:add});
+  if(remove.length)M.ecommerce('remove',{products:remove});
+  tracked={...now};
+}
+// checkout_start: once a page, at the first sign of ordering (a button, the form, the guest's sign-in).
+let checkoutStarted=false;
+function checkoutStart(how){if(checkoutStarted)return;checkoutStarted=true;M.goal('checkout_start',{how,user:!!state.user});}
 function failure(error){modal('<p>'+esc(error.message||'Не удалось связаться с сервером. Попробуйте ещё раз.')+'</p>');}
 // Sums are counted in kopecks (as the server does), so that 0.1+0.2-type drift never reaches the screen.
 const cents=()=>Object.entries(state.cart).reduce((s,[id,q])=>s+Math.round((product(id)?.price||0)*100)*q,0);
@@ -189,7 +206,7 @@ async function cartModalRun(act){
       const q=act==='set'?parseInt($('#dcm-qty').value):(state.cart[id]||1)+(act==='plus'?1:-1);
       state.cart[id]=Math.min(9999,Math.max(1,q||1));
     }else if(act==='remove'){delete state.cart[id];}
-    else if(!state.user){authModal(act==='compare'?'Сравнение — для зарегистрированных':'Избранное — для зарегистрированных','Войдите, чтобы сохранить товар: корзина при этом сохранится.');return;}
+    else if(!state.user){authModal(act==='compare'?'Сравнение — для зарегистрированных':'Избранное — для зарегистрированных','Войдите, чтобы сохранить товар: корзина при этом сохранится.',act==='compare'?'compare':'favorites');return;}
     else{const type=act==='compare'?'compare':'favorites',i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);}
     await save();
     if(act==='remove'){$('#demo-dialog')?.remove();return;}
@@ -238,8 +255,9 @@ function backUrl(){
   return u.startsWith(B)?u:B+u.slice(1);
 }
 // Sign-in offered where an account is needed (favourites, comparison, placing the order); the cart itself needs none.
-function authModal(title,text){
-  modal('<h3 id="demo-auth-title">'+esc(title)+'</h3><p>'+esc(text)+'</p><div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div>');
+function authModal(title,text,reason){
+  const go=(extra,cls,label,action)=>'<a class="demo-button'+cls+'" href="'+authUrl(extra)+'" data-auth="'+action+'" data-reason="'+esc(reason||'')+'">'+label+'</a>';
+  modal('<h3 id="demo-auth-title">'+esc(title)+'</h3><p>'+esc(text)+'</p><div class="demo-dialog-actions">'+go('','','Войти','login')+go('register=yes',' demo-button-light','Зарегистрироваться','register')+'</div>');
   $('#demo-dialog .demo-modal').setAttribute('aria-labelledby','demo-auth-title');
 }
 // ---- City: chosen from a list (no detection); Екатеринбург until the buyer says otherwise.
@@ -284,12 +302,14 @@ function sendCallback(f){
   if(!f.elements.agree.checked){err.textContent='Нужно согласие на обработку персональных данных.';return;}
   try{const list=store.get('callbacks')||[];list.push({name:f.elements.name.value.trim().slice(0,100),phone,comment:f.elements.comment.value.trim().slice(0,2000),at:Date.now(),page:here()});store.set('callbacks',list.slice(-50));}
   catch(error){err.textContent=error.message;return;}
+  M.goal('callback_request',{page:pageType(),list:!!f.elements.comment.value.trim()});
   modal('<h3>Заявка принята</h3><p>Менеджер перезвонит на номер '+esc(phone)+' в рабочее время ('+esc(C.hours)+').</p><p class="demo-muted">Демо-магазин: заявка сохраняется только в этом браузере и не передаётся поставщику.</p>');
 }
 async function add(id,q=1){
   if(!ready||saving)return;
   if(!product(id))return;
   state.cart[id]=Math.min(9999,(state.cart[id]||0)+q);try{await save();}catch(error){failure(error);return;}
+  M.goal('cart_add',{id:product(id).code,qty:q,page:pageType()});
   cartModal(id);
 }
 // ---- Cart page: notice, actions, table, order form on the same page (the original has no separate checkout page).
@@ -340,7 +360,7 @@ function minOrderBar(){
 // A guest fills the cart freely; signing in comes at this step, and the cart stays.
 function guestCheckout(){
   return '<div class="os-guest-checkout" id="os-guest-checkout"><h2>Оформление заказа</h2><p>Чтобы оформить заказ, войдите или зарегистрируйтесь — товары из корзины сохранятся.</p>'
-   +'<div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти и оформить</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div></div>';
+   +'<div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'" data-auth="login" data-reason="checkout">Войти и оформить</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'" data-auth="register" data-reason="checkout">Зарегистрироваться</a></div></div>';
 }
 const addAll=items=>cartOp(()=>{for(const [id,q] of items)if(product(id))state.cart[id]=Math.min(9999,(state.cart[id]||0)+q);});
 // Cart edits are queued (none is dropped), applied to the server (PUT /state) and shown; on a failure the cart goes back and the page says so.
@@ -429,8 +449,11 @@ async function placeOrder(f){
   if(total()<5000){show('Минимальная сумма заказа — 5 000 руб.',[]);return;}
   const button=$('#orderMake'),top=$('#orderMakeTop');button.disabled=true;if(top)top.disabled=true;
   try{
+    const bought=Object.entries(state.cart).filter(([id])=>product(id)).map(([id,q])=>M.item(product(id),q)),revenue=total();
     const result=await api('/orders','POST',{payer:f.elements.payer.value,name:val('name'),email:val('email'),phone:val('phone'),zip:val('zip'),location:val('location'),city:val('city'),address:val('address'),delivery:FREE_DELIVERY,comment:f.elements.comment.value.trim()});
-    state=result.state;location.href=B+'personal/cart/?orderId='+encodeURIComponent(result.orderId);
+    state=result.state;tracked={};
+    M.ecommerce('purchase',{actionField:{id:result.orderId,revenue},products:bought});
+    setTimeout(()=>{location.href=B+'personal/cart/?orderId='+encodeURIComponent(result.orderId);},300);   // time for the counter to send it
   }catch(error){show(error.message||'Не удалось оформить заказ.',[]);button.disabled=false;if(top)top.disabled=false;}
 }
 function renderAuth(){
@@ -494,12 +517,14 @@ document.addEventListener('click',async e=>{
   }
   $$('.dropDownItems.opened').forEach(x=>x.classList.remove('opened'));
   const a=e.target.closest('a,button');if(!a)return;
+  if(a.matches('[data-auth]'))M.goal('auth_modal_login_click',{action:a.dataset.auth,reason:a.dataset.reason});   // the link goes on to sign-in
+  if(a.closest('.demo-act-main,#os-guest-checkout [data-auth],#flushTopCart .order,.demo-cart-checkout'))checkoutStart(a.closest('#flushTopCart')?'header':a.dataset.auth?'guest_signin':'button');
   if(a.matches('[data-callback]')){e.preventDefault();callbackModal();return;}
   if(a.dataset.cm&&a.closest('#demo-dialog')){e.preventDefault();cartModalAction(a);return;}
   if(a.matches('[data-add],a.addCart')){e.preventDefault();const id=a.dataset.add||a.closest('[data-product]')?.dataset.product;const input=$$('input.qty,input.quantity,input[type=number]',a.closest('[data-product]')||document).find(x=>x.getClientRects().length);const q=Math.max(1,parseInt(input?.value)||1)*(Number(input?.dataset.mult)||1);add(id,q);return;}   // data-mult: pieces in the chosen pack (js/product.js)
   if(a.matches('[data-logout]')||a.getAttribute('href')==='#logout'){e.preventDefault();try{await api('/logout','POST',{});location.href=B;}catch(error){failure(error);}return;}
   const type=a.matches('[data-favorite],.addWishlist')?'favorites':a.matches('[data-compare],.addCompare')?'compare':null;
-  if(type){e.preventDefault();if(!ready||saving)return;if(!state.user){authModal(type==='favorites'?'Избранное — для зарегистрированных':'Сравнение — для зарегистрированных','Войдите, чтобы сохранить товар: после входа вы вернётесь на эту страницу.');return;}const id=a.dataset.favorite||a.dataset.compare||a.closest('[data-product]')?.dataset.product;if(!product(id))return;const i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);try{await save();}catch(error){failure(error);return;}a.classList.toggle('active',i<0);modal('<p>'+(i<0?'Товар добавлен':'Товар удалён')+'</p><a href="'+B+(type==='favorites'?'favorites/':'compare/')+'">'+(type==='favorites'?'Избранное':'Сравнение')+'</a>');renderList(type);return;}
+  if(type){e.preventDefault();if(!ready||saving)return;if(!state.user){authModal(type==='favorites'?'Избранное — для зарегистрированных':'Сравнение — для зарегистрированных','Войдите, чтобы сохранить товар: после входа вы вернётесь на эту страницу.',type);return;}const id=a.dataset.favorite||a.dataset.compare||a.closest('[data-product]')?.dataset.product;if(!product(id))return;const i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);try{await save();}catch(error){failure(error);return;}a.classList.toggle('active',i<0);modal('<p>'+(i<0?'Товар добавлен':'Товар удалён')+'</p><a href="'+B+(type==='favorites'?'favorites/':'compare/')+'">'+(type==='favorites'?'Избранное':'Сравнение')+'</a>');renderList(type);return;}
   if(a.matches('[data-remove]')){const id=a.dataset.remove;cartOp(()=>{delete state.cart[id];});return;}
   if(a.matches('[data-cart-clear]')){modal('<h3>Очистить корзину?</h3><p>Все товары будут удалены из корзины.</p><div class="demo-dialog-actions"><button type="button" class="demo-button" data-cart-clear-yes>Очистить</button><button type="button" class="demo-button demo-button-light" data-cart-clear-no>Отмена</button></div>');return;}
   if(a.matches('[data-cart-clear-no]')){$('#demo-dialog')?.remove();return;}
@@ -528,6 +553,7 @@ document.addEventListener('click',e=>{
   const head=e.target.closest('#footer .heading,#elementProperties h2.heading');
   if(head){const parent=head.parentElement;parent.classList.toggle('demo-expanded');$$('ul,table,.propertyList,.properties',parent).forEach(x=>x.style.display=parent.classList.contains('demo-expanded')?'block':'');}
 });
+document.addEventListener('focusin',e=>{if(e.target.closest('#demo-checkout'))checkoutStart('form');});
 document.addEventListener('change',e=>{if(e.target.id==='dcm-qty')cartModalAction({dataset:{cm:'set'}});});
 document.addEventListener('change',e=>{if(e.target.matches('[data-qty]')){const id=e.target.dataset.qty,q=Math.min(9999,Math.max(1,parseInt(e.target.value)||1));e.target.value=q;cartOp(()=>{state.cart[id]=q;});}});
 document.addEventListener('submit',async e=>{
@@ -560,7 +586,7 @@ if(!location.pathname.startsWith(B+'auth/'))$$('.top-auth-login a,.top-auth-regi
 const fresh=$('#demo-new');if(fresh){const list=P.filter(p=>p.new);fresh.innerHTML=list.length?'<p>Товары, которые недавно появились в каталоге.</p><div class="demo-grid">'+list.map(card).join('')+'</div>':'<p>Новинок пока нет.</p>'+managerBlock();}
 const sale=$('#demo-sale');if(sale)sale.innerHTML='<p>Предложения из нашего каталога</p><div class="demo-grid">'+P.slice(0,4).map(card).join('')+'</div>';
 listing();   // needs no account data: runs before the state request so that a long list never flashes in full
-try{state=await api('/state');ready=true;}catch(error){failure(error);}
+try{state=await api('/state');ready=true;tracked={...state.cart};}catch(error){failure(error);}
 header();showCity();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');
 const footer=document.createElement('div');footer.className='demo-sandbox-note';footer.textContent='ОфисСклад · Демонстрационный магазин. Заказы не передаются поставщику.';document.body.append(footer);document.body.dataset.ready='1';
 })();

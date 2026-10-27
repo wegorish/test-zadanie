@@ -61,10 +61,11 @@ setTimeout(()=>{if(empty())details.open=true;},0);
 
 let pending=[];
 const STATUS={ok:'',none:'не найден',many:'несколько товаров с таким кодом — уточните',qty:'не указано количество'};
-async function run(){
+async function run(source='text'){
   result.innerHTML='<p>Проверяем…</p>';
   let r;try{r=await check(area.value);}catch(e){result.innerHTML='<p class="os-ol-bad">Не удалось загрузить каталог. Обновите страницу.</p>';return;}
   pending=r.add;
+  window.OSM?.goal('order_list_upload',{source,lines:r.rows.length,found:r.rows.filter(x=>x.status==='ok').length,notFound:r.rows.filter(x=>x.status!=='ok').length});
   if(!r.rows.length){result.innerHTML='<p>Список пуст.</p>';return;}
   const ok=r.rows.filter(x=>x.status==='ok').length,bad=r.rows.length-ok;
   result.innerHTML='<p>Строк: <b>'+r.rows.length+'</b> · найдено: <b>'+ok+'</b>'+(bad?' · <span class="os-ol-bad">не найдено: <b>'+bad+'</b></span>':'')+'</p>'
@@ -127,7 +128,7 @@ box.addEventListener('click',async e=>{
 });
 box.addEventListener('change',async e=>{
   const input=e.target.closest('[data-ol-file]');if(!input||!input.files[0])return;
-  try{area.value=await fromFile(input.files[0]);details.open=true;run();}
+  try{area.value=await fromFile(input.files[0]);details.open=true;run(/\.xlsx$/i.test(input.files[0].name)?'xlsx':'csv');}
   catch(error){result.innerHTML='<p class="os-ol-bad">'+esc(error.message||'Не удалось прочитать файл.')+'</p>';}
   input.value='';
 });

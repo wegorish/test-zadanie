@@ -7,6 +7,7 @@ const m=/^product:(\d+)$/.exec(document.body.dataset.page||'');if(!m)return;
 const p=OS.product(m[1]);if(!p)return;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const base=OS.unit(p).replace(/\.$/,'');
+window.OSM?.ecommerce('detail',{products:[window.OSM.item(p)]});   // e-commerce: the product was viewed
 const units=[{unit:base,size:1},...(p.packs||[])];
 const n=v=>Number(v).toLocaleString('ru-RU');
 

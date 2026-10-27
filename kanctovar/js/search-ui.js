@@ -45,10 +45,12 @@ if(input&&form){
   input.addEventListener('keydown',e=>{
     if(box.hidden)return;
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();mark(active+(e.key==='ArrowDown'?1:-1));}
-    else if(e.key==='Enter'&&active>=0){e.preventDefault();location.href=options()[active].href;}
+    else if(e.key==='Enter'&&active>=0){e.preventDefault();suggestClick(options()[active]);location.href=options()[active].href;}
     else if(e.key==='Escape'){close();}
   });
   document.addEventListener('click',e=>{if(!e.target.closest('#os-suggest,#searchQuery'))close();});
+  const suggestClick=o=>window.OSM?.goal('search_suggest_click',{query:last,position:options().indexOf(o)+1,exact:o.classList.contains('os-sg-exact')});
+  box.addEventListener('click',e=>{const o=e.target.closest('[role=option]');if(o)suggestClick(o);});
   box.addEventListener('mousedown',e=>e.preventDefault());                // keep the focus in the field while clicking
 }
 
@@ -72,7 +74,10 @@ if(el){
     el.innerHTML='<p class="os-loading">Ищем…</p>';
     load().then(engine=>{
       const r=engine.search(q,{section});
-      if(r.exact&&!section){location.replace(r.exact.url);return;}       // a full code or a barcode: straight to the product
+      const M=window.OSM;
+      if(!section)M?.goal('search_submit',{query:q,results:r.total,exact:!!r.exact,layout:!!r.layout});
+      if(!r.total&&!section)M?.goal('search_empty',{query:q,didYouMean:r.didYouMean||'',partial:r.partial.length});
+      if(r.exact&&!section){setTimeout(()=>location.replace(r.exact.url),150);return;}   // a code or a barcode: straight to the product
       sections(r);
       const found=r.total;
       if(OS.inStockOnly&&OS.inStockOnly()){r.items=r.items.filter(it=>it.stock>0);r.total=r.items.length;}
