@@ -74,3 +74,38 @@ html{scroll-behavior:smooth}body{padding-bottom:48px}img{max-width:100%}#logo im
 }
 /* the cart of the original is a full-width page: no section filter column */
 body[data-page=cart] #nextSection,body[data-page=cart] #smartFilter{display:none}
+/* ---- P0: sign-in from the guest window, contacts in dead ends, mobile header ---- */
+/* sign-in, sign-up and the cart are working pages: no catalogue column, no notebook filter */
+body[data-page=auth] #left,body[data-page=cart] #left{display:none!important}
+body[data-page=auth] #right,body[data-page=cart] #right{padding-left:0}
+.demo-auth-tabs a{text-decoration:none}.demo-auth-tabs a.active{font-weight:700;border-bottom:2px solid #4e478b;padding-bottom:13px}
+.demo-login-extra{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:16px 0}.demo-login-extra .demo-consent{margin:0}
+.demo-modal .demo-dialog-actions .demo-button{text-align:center}
+.demo-modal textarea{display:block;box-sizing:border-box;width:100%;padding:12px;margin:6px 0 18px;border:1px solid #ddd;font:15px Arial,sans-serif;resize:vertical}
+.demo-modal label{display:block}
+.demo-modal input[type=checkbox]{display:inline-block;width:17px;height:17px;min-height:0;margin:0 8px 0 0;padding:0;vertical-align:middle}
+#demo-callback-error,#demo-forgot-error{color:#cb344a;margin:0 0 12px}#demo-callback-error:empty,#demo-forgot-error:empty{display:none}
+.demo-manager{margin:32px 0 0;padding:24px;border:1px solid #e3e0f2;border-radius:8px;background:#f8f7fd}
+.demo-content .demo-manager h3{margin:0 0 8px;font-size:19px;font-weight:700;color:#333}.demo-manager p{margin:0 0 16px}
+.demo-manager-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin-bottom:16px}
+.demo-content .demo-manager-phone{font-size:22px;font-weight:700;color:#292929;text-decoration:none;white-space:nowrap}
+.demo-manager .demo-muted{margin:0;font-size:13px;color:#666}
+#topToolsRight a.heading{color:inherit;text-decoration:none}#topToolsRight a.heading:hover{color:#4e478b}
+#rightFooter .telephone a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #4e478b;outline-offset:2px}
+/* 390 px: logo + sign-in on the first line, the search across the whole width right under them, city and cart below */
+@media (max-width:550px){
+ #subHeader3{height:auto!important;line-height:21px!important;padding-bottom:112px}
+ #subHeader3 .subTableColumn:first-child{vertical-align:top;padding-top:4px}
+ #subHeader3 #logo{height:68px}
+ #topSearchLine{top:78px!important;padding:0 12px!important}
+ #topSearch2,#topSearch2 .searchContainerInner{width:100%!important;box-sizing:border-box}
+ #subHeader3 #geoPosition{position:absolute;left:12px;top:146px;width:auto;line-height:21px;white-space:nowrap}
+ #subHeaderLine,#subHeaderLine .limiter,#subHeaderLine .subLineContainer,#subHeaderLine .subLineLeft{margin-top:0!important;height:auto!important;line-height:normal}
+ /* the six menu items in two rows instead of a line that scrolls sideways */
+ #subMenu{display:grid!important;grid-template-columns:repeat(3,1fr);height:auto;overflow:visible;white-space:normal}
+ #subMenu li a{display:block;padding:0 4px!important;line-height:44px;text-align:center;font-size:14px}
+ #subHeader3 .user-geo-position-label{display:inline-block!important;margin-right:6px;color:#666}
+ #subHeader3 .user-geo-position,#subHeader3 .user-geo-position-value{display:inline-block}
+ #subHeader3 .subTableColumn:last-child{top:136px!important}
+}
