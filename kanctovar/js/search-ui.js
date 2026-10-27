@@ -81,6 +81,7 @@ if(el){
       else{
         if(r.didYouMean)html+='<p class="os-dym">Возможно, вы искали: <a href="'+esc(searchUrl(r.didYouMean))+'">'+esc(r.didYouMean)+'</a></p>';
         if(r.partial.length)html+='<h2>Похожие товары</h2><p class="demo-muted">В них есть не все слова запроса.</p>'+grid(r.partial.slice(0,6));
+        else html+='<h2>Популярные товары</h2><p class="demo-muted">Похожего в каталоге нет — вот что чаще всего заказывают.</p>'+grid(engine.top(6));
         html+=OS.managerBlock();
       }
       el.innerHTML=html;

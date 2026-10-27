@@ -130,10 +130,10 @@ function create(items,dict){
     const query=String(q||'').trim();
     const out={query,layout:null,items:[],total:0,exact:null,partial:[],sections:[],didYouMean:null};
     if(!query)return out;
-    // A full product code or a barcode of one product: that product.
+    // Exactly the code of one product — full or short ("179195"), warehouse code or barcode: that product.
     const c=compact(query);
-    if(c.length>=6){
-      const one=docs.filter(d=>c===d.codes.full||c===d.codes.barcode);
+    if(/^\d{4,}$/.test(c)){
+      const one=docs.filter(d=>c===d.codes.full||c===d.codes.num||c===d.codes.wh||c===d.codes.barcode);
       if(one.length===1)out.exact=one[0].it;
     }
     let r=run(query);
@@ -160,7 +160,9 @@ function create(items,dict){
     }
     return out;
   }
-  return {search,size:docs.length};
+  // The most popular products, for a search that found nothing alike.
+  const top=n=>docs.map(d=>d.it).sort((a,b)=>a.pop-b.pop).slice(0,n);
+  return {search,top,size:docs.length};
 }
 
 return {create,tokenize,stem,switchLayout,compact};
