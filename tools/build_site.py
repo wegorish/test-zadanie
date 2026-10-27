@@ -88,8 +88,27 @@ def new_product_ids():
     return ids
 
 
+def card_stock(text):
+    """(pieces in stock, date expected) as the product page shows them: «В наличии: 47» / «Ожидается поступление 30.09.2026»."""
+    m = re.search(r'<div class="row available-block">\s*<a class="inStock[^"]*"[^>]*>\s*<img[^>]*/>\s*<span>В наличии:\s*([\d\s\xa0]+)</span>', text)
+    if m:
+        return int(re.sub(r'\D', '', m.group(1))), None
+    m = re.search(r'<div class="onOrder[^"]*">.*?Ожидается поступление\s*</p>\s*<p>\s*(\d{2}\.\d{2}\.\d{4})', text, re.S)
+    return 0, m.group(1) if m else None
+
+
+def card_packs(text):
+    """«Список упаковок»: "шт, упак (12 шт), кор (144 шт)" -> [{"unit": "упак", "size": 12}, {"unit": "кор", "size": 144}]."""
+    m = re.search(r'<td class="name"><span>Список упаковок</span>\s*</td>\s*<td>([^<]*)</td>', text)
+    if not m:
+        return []
+    return [{'unit': u.strip(), 'size': int(re.sub(r'\D', '', n))}
+            for u, n in re.findall(r'([^,()]+?)\s*\(([\d\s\xa0]+)\s*[^)]*\)', html.unescape(m.group(1)))]
+
+
 def build_data(changed):
-    """products.json is the source; demo.js carries the same list inline (line 1)."""
+    """products.json is the source; demo.js carries the same list inline (line 1).
+    Stock, the expected date and the packs are taken from the product pages: that is what the buyer sees there."""
     path = os.path.join(ROOT, 'products.json')
     products = json.loads(read(path))
     fresh = new_product_ids()
@@ -98,6 +117,17 @@ def build_data(changed):
             p['new'] = True
         else:
             p.pop('new', None)
+        page = read(os.path.join(ROOT, p['path'][len(BASE):]))
+        p['stock'], expected = card_stock(page)
+        if expected:
+            p['expected'] = expected
+        else:
+            p.pop('expected', None)
+        packs = card_packs(page)
+        if packs:
+            p['packs'] = packs
+        else:
+            p.pop('packs', None)
     data = json.dumps(products, ensure_ascii=False)
     write(path, data, changed)
     js_path = os.path.join(ROOT, 'demo.js')
@@ -141,6 +171,7 @@ def build_index(changed, products):
             'price': p['price'],
             'unit': p['unit'],
             'stock': p['stock'],
+            'expected': p.get('expected', ''),
             'pop': p['pop'],
             'new': bool(p.get('new')),
             'url': p['path'],
@@ -205,6 +236,65 @@ def fix_footer_catalog(block, here):
     return re.sub(r'<li><a((?: [a-z-]+="[^"]*")*)>([^<]*)</a></li>', item, block)
 
 
+# ---------- section filters, product pages ----------
+
+# Values that are the same thing written two ways (compared after norm_value, lower case, ё = е).
+SAME_VALUE = {'пп': 'полипропилен', 'pvc': 'ПВХ', 'no name': 'NoName', 'ф.р.ф': 'ФРФ', 'бордо': 'бордовый',
+              'универсальный': 'универсальная', 'скоба': 'на скобе', 'attomex россия': 'Attomex'}
+
+
+def norm_value(box, v):
+    """One spelling for a filter value: "230*365 мм." -> "230×365 мм", "0.52 мм." -> "0,52 мм", Latin A4 -> А4."""
+    v = re.sub(r'\s+', ' ', html.unescape(v)).strip().replace('\\', '/')
+    v = re.sub(r'(\d)\s*\*\s*(\d)', r'\1×\2', v)
+    v = re.sub(r'(\d)\.(\d)', r'\1,\2', v)
+    v = re.sub(r'\b(мм|см|мкм|м|стр|шт)\.(?=$|\s|\()', r'\1', v)
+    v = re.sub(r'(мм)\(', r'\1 (', v)
+    if box == 'Формат':
+        v = re.sub(r'^[ABC](?=\d)', lambda m: {'A': 'А', 'B': 'В', 'C': 'С'}[m.group(0)], v)
+    if box == 'Количество страниц' and re.fullmatch(r'\d+', v):
+        v += ' стр'
+    return SAME_VALUE.get(v.lower(), v)
+
+
+def fix_filters(text):
+    """«Фильтр по параметрам»: each value written one way, duplicates merged."""
+    def box(m):
+        title, body = m.group(1), m.group(2)
+        seen, removed = set(), 0
+
+        def item(li):
+            nonlocal removed
+            value = norm_value(title, li.group(3))
+            key = value.lower().replace('ё', 'е')
+            if key in seen:
+                removed += 1
+                return ''
+            seen.add(key)
+            return '%s<label for="%s">%s</label>%s' % (li.group(1), li.group(2), value, li.group(4))
+        body = re.sub(r'(<li class="[^"]*">\s*<input[^>]*/>\s*)<label for="([^"]*)">\s*(.*?)\s*</label>(\s*</li>\s*)',
+                      item, body, flags=re.S)
+        if removed:
+            def more(x):
+                n = int(x.group(1)) - removed
+                return '<li><a class="showALL" href="#">Показать ещё %d</a></li>' % n if n > 0 else ''
+            body = re.sub(r'<li><a class="showALL" href="#">Показать ещё (\d+)</a></li>', more, body)
+        return m.group(0).replace(m.group(2), body)
+    return re.sub(r'<div class="paramsBoxTitle">\s*<span>(.*?)</span>(.*?)(?=<div class="paramsBox">|<ul id="smartFilterControls">)',
+                  box, text, flags=re.S)
+
+
+def fix_product_page(text):
+    """Dimensions written in metres under «(мм)» become millimetres; the empty brand picture goes."""
+    def mm(m):
+        value = float(m.group(2).replace(',', '.'))
+        return m.group(1) + (str(round(value * 1000)) if value < 1 else m.group(2)) + m.group(3)
+    text = re.sub(r'(<td class="name"><span>(?:Длина|Высота|Ширина) \(мм\)</span>\s*</td>\s*<td>)([\d.,]+)(</td>)', mm, text)
+    text = re.sub(r'<div class="brandImageWrap">\s*<a class="brandImage" href="[^"]*"><img alt="[^"]*" src="[^"]*blank\.svg"/></a>\s*</div>\s*',
+                  '', text)
+    return text
+
+
 def patch_page(rel, text, products):
     here = page_url(rel)
 
@@ -254,9 +344,16 @@ def patch_page(rel, text, products):
         text = re.sub(r'<link href="/upload/[^"]*" itemprop="image"/>',
                       '<link href="%s" itemprop="image"/>' % products[own.group(1)]['image'], text)
 
+    # P2: filter values, product pages
+    if '<div id="smartFilter">' in text:
+        text = fix_filters(text)
+    if 'data-page="product:' in text:
+        text = fix_product_page(text)
+
     # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
     scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)
-                      for name in ('js/config.js', 'demo.js', 'js/search.js', 'js/search-ui.js'))
+                      for name in ('js/config.js', 'demo.js', 'js/catalog.js', 'js/product.js',
+                                   'js/search.js', 'js/search-ui.js'))
     text = re.sub(r'(?:<script defer="True" src="%s[^"]*"></script>)+' % re.escape(BASE), scripts, text)
     # The search index and the abbreviation list are JSON files of this site, read with fetch()
     text = text.replace("connect-src 'none'", "connect-src 'self'")

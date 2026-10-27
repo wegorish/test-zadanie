@@ -11,7 +11,7 @@ const json=url=>fetch(url,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(
 const load=()=>engine||(engine=Promise.all([json(B+'search-index.json'),json(B+'search-abbr.json')]).then(([items,abbr])=>E.create(items,abbr)));
 const searchUrl=(q,s)=>B+'search/?q='+encodeURIComponent(q)+(s?'&s='+encodeURIComponent(s):'');
 const units=n=>Number(n).toLocaleString('ru-RU');
-const stock=it=>it.stock>0?'в наличии '+units(it.stock)+' '+esc(it.unit||'шт.'):'под заказ';
+const stock=it=>it.stock>0?'в наличии '+units(it.stock)+' '+esc(it.unit||'шт.'):it.expected?'ожидается '+esc(it.expected):'нет в наличии';
 
 // ---- Suggestions: from 2 letters, up to 8 products; ↑/↓ choose, Enter opens the chosen one or all results.
 const input=$('#searchQuery'),form=$('#topSearchForm');
@@ -74,11 +74,15 @@ if(el){
       const r=engine.search(q,{section});
       if(r.exact&&!section){location.replace(r.exact.url);return;}       // a full code or a barcode: straight to the product
       sections(r);
+      const found=r.total;
+      if(OS.inStockOnly&&OS.inStockOnly()){r.items=r.items.filter(it=>it.stock>0);r.total=r.items.length;}
       const chosen=section&&r.sections.find(s=>s.id===section);
       let html='<p class="os-found">По запросу <b>'+esc(q)+'</b> '+(r.total?'найдено товаров: <b>'+r.total+'</b>':'ничего не найдено')+(chosen?' в разделе «'+esc(chosen.name)+'» · <a href="'+esc(searchUrl(q))+'">во всех разделах</a>':'')+'</p>';
       if(r.layout)html+='<p class="os-note">Похоже, запрос набран в другой раскладке — показываем результаты по запросу «<b>'+esc(r.layout)+'</b>».</p>';
+      if(found&&OS.catalogTools)html+=OS.catalogTools();
       if(r.total)html+=grid(r.items);
-      else{
+      else if(found)html+='<p>Все найденные товары сейчас не в наличии. <a href="'+esc(searchUrl(q,section))+'">Показать их</a></p>';
+      if(!found){
         if(r.didYouMean)html+='<p class="os-dym">Возможно, вы искали: <a href="'+esc(searchUrl(r.didYouMean))+'">'+esc(r.didYouMean)+'</a></p>';
         if(r.partial.length)html+='<h2>Похожие товары</h2><p class="demo-muted">В них есть не все слова запроса.</p>'+grid(r.partial.slice(0,6));
         else html+='<h2>Популярные товары</h2><p class="demo-muted">Похожего в каталоге нет — вот что чаще всего заказывают.</p>'+grid(engine.top(6));

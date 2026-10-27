@@ -107,7 +107,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
  #subMenu li a{display:block;padding:0 4px!important;line-height:44px;text-align:center;font-size:14px}
  #subHeader3 .user-geo-position-label{display:inline-block!important;margin-right:6px;color:#666}
  #subHeader3 .user-geo-position,#subHeader3 .user-geo-position-value{display:inline-block}
- #subHeader3 .subTableColumn:last-child{top:136px!important}
+ #subHeader3 .subTableColumn:last-child{top:136px!important;width:auto!important}   /* a two-digit count must not push the cart off the screen */
 }
 /* ---- P1: search suggestions and results ---- */
 #topSearch2{position:relative}#subHeader3{overflow:visible!important}   /* the theme clips the header; the suggestions hang below it */
@@ -130,4 +130,93 @@ body[data-page=search] #smartFilter{display:none!important}
  .os-suggest{position:fixed;left:8px;right:8px;top:auto;max-height:60vh}
  .os-sg-item{padding:8px 12px;gap:8px}.os-sg-item img{flex-basis:40px;width:40px;height:40px}
  .os-sg-side{font-size:13px}
+}
+/* ---- P2: catalogue for a wholesale buyer: tile / list, stock, quantity always in sight ---- */
+.os-stock{display:block;font-size:13px;line-height:1.4}.os-stock.os-in{color:#2e7d32}.os-stock.os-out{color:#b26a00}
+.os-tip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:4px;padding:0;border:1px solid #b9b3dd;border-radius:50%;background:#fff;color:#4e478b;font:700 11px/1 Arial,sans-serif;cursor:help;vertical-align:middle;position:relative}
+.os-tip:hover::after,.os-tip:focus-visible::after{content:attr(data-tip);position:absolute;z-index:50;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:8px 12px;border-radius:8px;background:#292929;color:#fff;font:400 13px/1.3 Arial,sans-serif;white-space:nowrap;box-shadow:0 4px 16px #0003}
+.os-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;margin:0 0 16px}
+#catalogLine{height:auto!important;min-height:55px}#catalogLine+.os-tools{margin:16px 0}#catalogLine .column[hidden]{display:none!important}
+.os-view{display:inline-flex;border:1px solid #cfcbe6;border-radius:8px;overflow:hidden}
+.os-view button{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border:0;background:#fff;color:#4e478b;font:14px Arial,sans-serif;cursor:pointer}
+.os-view button+button{border-left:1px solid #cfcbe6}.os-view button[aria-pressed=true]{background:#4e478b;color:#fff}
+.os-instock{display:inline-flex!important;align-items:center;gap:8px;font:14px Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.os-instock input{width:17px!important;height:17px!important;margin:0!important;display:inline-block!important;appearance:auto!important;position:static!important;opacity:1!important}
+/* tiles of the section pages: the whole tile is shown, «В корзину» and the quantity without hovering */
+#catalogSection .productList{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));height:auto!important}
+#catalogSection .productList .item{width:auto!important;height:auto!important;float:none!important;margin:0!important}
+#catalogSection .productList .item .tabloid{height:100%!important;overflow:visible!important;position:relative!important;box-sizing:border-box;display:flex;flex-direction:column}
+#catalogSection .productList .item .productTable{flex:1;display:flex;flex-direction:column}
+#catalogSection .productList .item .productColText{flex:1}
+#catalogSection .productList .item .productColBasket,#catalogSection .productList .item .optional{display:block!important;visibility:visible!important;opacity:1!important;position:static!important}
+/* the theme shows the quantity only on hover, over the button: here it stands next to it */
+#catalogSection .productList .addCartContainer{display:flex!important;gap:8px;align-items:stretch}
+#catalogSection .productList .addCartContainer .addCart{flex:1;min-width:0;border-radius:8px}
+#catalogSection .productList .quantityContainer{order:-1;position:static!important;visibility:visible!important;opacity:1!important;display:flex!important;align-items:center;flex:0 0 auto;width:auto!important;height:auto!important;margin:0!important}
+#catalogSection .productList .quantityWrapper{visibility:visible!important;display:flex!important;width:auto!important;position:static!important;line-height:normal!important;align-items:center;height:100%;padding:0 4px;border:1px solid #cfcbe6;border-radius:8px;background:#fff}
+#catalogSection .productList .quantityWrapper input.quantity{visibility:visible!important;margin:0!important;padding:0!important;align-self:center;width:44px!important;height:32px!important;border:0!important;background:none!important;text-align:center;font:15px Arial,sans-serif;color:#292929}
+#catalogSection .productList .quantityWrapper .minus,#catalogSection .productList .quantityWrapper .plus{visibility:visible!important;display:inline-flex!important;position:static!important;margin:0!important;transform:none!important;align-self:center;align-items:center;justify-content:center;width:28px;height:32px;background:none!important;color:#4e478b;text-decoration:none;font:20px/1 Arial,sans-serif}
+#catalogSection .productList .quantityWrapper .minus::before{content:'−'}#catalogSection .productList .quantityWrapper .plus::before{content:'+'}
+#catalogSection .productList .min_price_property{color:#666!important}
+/* product page: the same quantity next to «В корзину» */
+.mainToolContainer .addCartContainer{display:flex!important;flex-direction:column;gap:8px;align-items:stretch}
+.mainToolContainer .addCartContainer .qtyBlock{align-self:flex-start}
+.mainToolContainer .addCartContainer .addCart{flex:0 0 auto;min-width:0;width:auto!important;min-height:52px;height:auto!important;border-radius:8px;align-content:center}
+.mainToolContainer .qtyBlock{order:-1;position:static!important;visibility:visible!important;opacity:1!important;display:flex!important;align-items:center;width:auto!important;height:auto!important;margin:0!important}
+.mainToolContainer .qtyBlockContainer{visibility:visible!important;display:flex!important;width:auto!important;position:static!important;align-items:center;height:100%;padding:0 4px;border:1px solid #cfcbe6;border-radius:8px;background:#fff}
+.mainToolContainer .qtyBlockContainer input.qty{visibility:visible!important;margin:0!important;padding:0!important;align-self:center;width:48px!important;height:36px!important;border:0!important;background:none!important;text-align:center;font:16px Arial,sans-serif;color:#292929!important}
+.mainToolContainer .qtyBlockContainer .minus,.mainToolContainer .qtyBlockContainer .plus{visibility:visible!important;display:inline-flex!important;position:static!important;margin:0!important;transform:none!important;align-self:center;align-items:center;justify-content:center;width:28px;height:36px;background:none!important;color:#4e478b;text-decoration:none;font:20px/1 Arial,sans-serif}
+.mainToolContainer .qtyBlockContainer .minus::before{content:'−'}.mainToolContainer .qtyBlockContainer .plus::before{content:'+'}
+.mainToolContainer .min_price_property{color:#666!important}
+/* list view: one row per product */
+body.os-view-list #catalogSection .productList{grid-template-columns:1fr}
+body.os-view-list #catalogSection .productList .item .tabloid{flex-direction:row;align-items:center;gap:16px;padding:8px 16px}
+body.os-view-list #catalogSection .productList .item .rating,body.os-view-list #catalogSection .productList .item .optional,body.os-view-list #catalogSection .productList .item .add-cart,body.os-view-list #catalogSection .productList .item .product__pack{display:none!important}
+body.os-view-list #catalogSection .productList .item .productTable{flex:1;min-width:0;display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:16px}
+body.os-view-list #catalogSection .productList .item .productColImage{height:72px!important;width:72px!important;min-width:0!important;max-width:none!important;padding:0!important;margin:0!important;display:flex!important;align-items:center;justify-content:center}
+body.os-view-list #catalogSection .productList .item .productColImage img{max-height:72px!important;max-width:72px!important;width:auto!important;height:auto!important}
+body.os-view-list #catalogSection .productList .item .productColText{display:grid;grid-template-columns:minmax(0,1fr) 180px;grid-template-areas:"name price" "code min" "stock min";column-gap:16px;row-gap:4px;align-items:start;padding:0!important;text-align:left}
+body.os-view-list #catalogSection .productList .item .productColText .name{grid-area:name;height:auto!important;max-height:none!important;overflow:visible!important}
+body.os-view-list #catalogSection .productList .item .productColText .name .middle{white-space:normal!important}
+body.os-view-list #catalogSection .productList .item .productColText .price{grid-area:price;margin:0!important;text-align:right}
+body.os-view-list #catalogSection .productList .item .productColText .min_price_property{grid-area:min;margin:0!important;text-align:right}
+body.os-view-list #catalogSection .productList .item .productColText .requisites_code{grid-area:code;margin:0!important}
+body.os-view-list #catalogSection .productList .item .productColText .os-stock{grid-area:stock}
+body.os-view-list #catalogSection .productList .item .productColBasket{flex:0 0 240px;margin:0!important;padding:0!important}
+/* cards built by demo.js (search results, «Новинки», favourites) */
+.demo-card-pic{display:block}.demo-card-info{display:flex;flex-direction:column;gap:6px;min-width:0}.demo-card-price{display:flex;flex-direction:column;gap:4px}
+.demo-card .demo-min{color:#666}
+.demo-card-buy{display:flex;gap:8px;align-items:stretch}
+.demo-content .demo-card-buy input{display:inline-block;width:64px!important;min-height:0;margin:0!important;padding:8px;text-align:center;border-radius:8px}
+.demo-card-buy .demo-button{flex:1;padding:12px 16px;border-radius:8px;text-align:center}
+body.os-view-list .demo-grid{grid-template-columns:1fr}
+body.os-view-list .demo-card{display:grid;grid-template-columns:72px minmax(0,1fr) 170px 240px;align-items:center;gap:16px;padding:12px 16px}
+body.os-view-list .demo-card img{height:72px;width:72px}
+body.os-view-list .demo-card-name{min-height:0}
+body.os-view-list .demo-card-price{text-align:right}
+body.os-view-list .demo-card-extra{display:none}
+/* product page: pieces or packs, the recounted sum */
+.os-units{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;padding:0;border:0;min-width:0}
+.os-units legend{width:100%;margin:0 0 4px;padding:0;font:13px Arial,sans-serif;color:#666}
+.os-units label{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #cfcbe6;border-radius:8px;background:#fff;color:#292929;font:14px Arial,sans-serif;cursor:pointer;line-height:1.2}
+.os-units label:has(input:checked){border-color:#4e478b;background:#f1effa;color:#4e478b;font-weight:700}
+.os-units input{width:auto!important;margin:0!important;appearance:auto!important;position:static!important;opacity:1!important;display:inline-block!important}
+.os-sum{margin:12px 0 0;font:14px/1.4 Arial,sans-serif;color:#292929}
+@media (max-width:800px){
+ #catalogSection .productList{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.os-view-list #catalogSection .productList .item .productTable{grid-template-columns:64px minmax(0,1fr)}
+ body.os-view-list #catalogSection .productList .item .productColImage{width:64px!important;height:64px!important;min-width:0!important}
+ body.os-view-list #catalogSection .productList .item .productColText{grid-template-columns:1fr;grid-template-areas:"name" "code" "stock" "price" "min"}
+ body.os-view-list #catalogSection .productList .item .productColText .price,body.os-view-list #catalogSection .productList .item .productColText .min_price_property{text-align:left}
+ body.os-view-list #catalogSection .productList .item .tabloid{flex-direction:column;align-items:stretch}
+ body.os-view-list #catalogSection .productList .item .productColBasket{flex-basis:auto}
+ body.os-view-list .demo-card{grid-template-columns:64px minmax(0,1fr)}
+ body.os-view-list .demo-card-price{text-align:left;grid-column:2}
+ body.os-view-list .demo-card-buy{grid-column:1/-1}
+ .os-tip:hover::after,.os-tip:focus-visible::after{white-space:normal;width:200px;left:auto;right:-8px;transform:none}
+}
+@media (max-width:550px){
+ /* the product photo leaves room for the price and «В корзину» on the first screen */
+ #pictureContainer,#pictureContainer .pictureSlider,#pictureContainer .item{height:auto!important;min-height:0!important}
+ #pictureContainer .pictureSlider img{max-height:200px!important;width:auto!important;margin:0 auto;display:block;object-fit:contain}
 }
