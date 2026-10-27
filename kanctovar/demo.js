@@ -242,6 +242,29 @@ function authModal(title,text){
   modal('<h3 id="demo-auth-title">'+esc(title)+'</h3><p>'+esc(text)+'</p><div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div>');
   $('#demo-dialog .demo-modal').setAttribute('aria-labelledby','demo-auth-title');
 }
+// ---- City: chosen from a list (no detection); Екатеринбург until the buyer says otherwise.
+const CITIES=['Екатеринбург','Нижний Тагил','Каменск-Уральский','Первоуральск','Барнаул','Кемерово','Новокузнецк','Красноярск','Якутск','Иркутск','Улан-Удэ','Тюмень','Челябинск','Пермь','Новосибирск','Омск'];
+const HOME_CITY=CITIES[0];
+const city=()=>state.city||store.get('city')||HOME_CITY;
+function showCity(){
+  const c=city();
+  $$('.user-geo-position-value-link span').forEach(x=>{x.textContent=c;});
+  // the terms line under the header speaks of the buyer's city
+  $$('[data-city-delivery]').forEach(x=>{x.textContent=c===HOME_CITY?'Доставка в регионы через ТК':'Отправка в '+c+' — через ТК';});
+}
+function cityModal(){
+  const c=city();
+  modal('<h3 id="demo-city-title">Ваш город</h3><p>От города зависят сроки и способ доставки. По умолчанию — Екатеринбург, где наш склад.</p><div class="os-cities">'
+   +CITIES.map(x=>'<button type="button" data-city="'+esc(x)+'" aria-pressed="'+(x===c)+'">'+esc(x)+'</button>').join('')+'</div>'
+   +'<label for="demo-city">Другой город</label><input id="demo-city" autocomplete="address-level2" value="'+(CITIES.includes(c)?'':esc(c))+'"><button type="button" class="demo-button" id="demo-city-save">Сохранить</button>');
+  $('#demo-dialog .demo-modal').setAttribute('aria-labelledby','demo-city-title');
+}
+async function setCity(c){
+  c=String(c).trim().slice(0,100);if(!c)return;
+  try{store.set('city',c);}catch(e){}
+  state.city=c;showCity();$('#demo-dialog')?.remove();
+  if(state.user){try{await save();}catch(error){failure(error);}}
+}
 // ---- Dead ends (empty cart, nothing found): a person to talk to.
 function managerBlock(){
   return '<div class="demo-manager"><h3>Не нашли? Позвоните или оставьте список менеджеру</h3><p>Подберём товары по кодам, названиям из прайса или фото и соберём заказ за вас.</p>'
@@ -422,7 +445,10 @@ function renderAuth(){
      +'<p><a href="'+link('')+'">Вспомнили пароль? Войти</a></p></form>';
     return;
   }
-  el.innerHTML=tabs+'<form id="demo-login" class="demo-auth-form"><h2>'+(reg?'Регистрация':'Авторизация')+'</h2>'+(reg?'<label>Имя *<input name="name" autocomplete="given-name" required></label>':'')+'<label>Email *<input name="email" type="email" autocomplete="username" required></label><label>Пароль'+(reg?' (не менее 8 символов)':'')+' *<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="'+(reg?'new-password':'current-password')+'"></label>'+(reg?'<label>Подтверждение пароля *<input name="confirm" type="password" required minlength="8" autocomplete="new-password"></label><label>Название организации<input name="company"></label><label>Телефон<input name="phone"></label><label class="demo-consent"><input type="checkbox" required> Я согласен на обработку персональных данных</label>':'<div class="demo-login-extra"><label class="demo-consent"><input type="checkbox" name="remember" checked> Запомнить меня на этом компьютере</label><a href="'+link('forgot_password=yes')+'">Забыли пароль?</a></div>')+'<p id="demo-login-error" role="alert"></p><button class="demo-button" type="submit">'+(reg?'Зарегистрироваться':'Войти')+'</button></form>';
+  // Sign-up: why it is worth it, no password repeat (a «Показать» switch instead).
+  const why=reg?'<div class="os-reg-why"><b>Зачем регистрироваться</b><ul><li>Оформление заказа и цены для зарегистрированных клиентов.</li><li>История заказов: прошлый заказ повторяется в один клик.</li><li>Избранное и сравнение сохраняются в аккаунте.</li></ul></div>':'';
+  const password='<label for="os-pw">Пароль'+(reg?' (не менее 8 символов)':'')+' *</label><div class="os-pw"><input id="os-pw" name="password" type="password" required minlength="8" maxlength="128" autocomplete="'+(reg?'new-password':'current-password')+'"><button type="button" class="os-showpw" aria-controls="os-pw" aria-pressed="false">Показать</button></div>';
+  el.innerHTML=tabs+why+'<form id="demo-login" class="demo-auth-form" data-mode="'+(reg?'register':'login')+'"><h2>'+(reg?'Регистрация':'Авторизация')+'</h2>'+(reg?'<label>Имя *<input name="name" autocomplete="given-name" required></label>':'')+'<label>Email *<input name="email" type="email" autocomplete="username" required></label>'+password+(reg?'<label>Название организации<input name="company" autocomplete="organization"></label><label>Телефон<input name="phone" type="tel" autocomplete="tel"></label><label class="demo-consent"><input type="checkbox" required> Я согласен на обработку персональных данных</label>':'<div class="demo-login-extra"><label class="demo-consent"><input type="checkbox" name="remember" checked> Запомнить меня на этом компьютере</label><a href="'+link('forgot_password=yes')+'">Забыли пароль?</a></div>')+'<p id="demo-login-error" role="alert"></p><button class="demo-button" type="submit">'+(reg?'Зарегистрироваться':'Войти')+'</button></form>';
 }
 // Order history: every order with «Повторить заказ» — its products go back into the cart, added to what is there.
 function renderOrders(){
@@ -482,8 +508,10 @@ document.addEventListener('click',async e=>{
   if(a.matches('[data-repeat]')){e.preventDefault();const o=state.orders.find(x=>x.id===a.dataset.repeat);if(!o||!ready)return;await addAll(Object.entries(o.items||{}));location.href=B+'personal/cart/?repeated='+encodeURIComponent(o.id);return;}
   if(a.matches('.plus,.minus')){e.preventDefault();const box=a.closest('.quantity, .quantityContainer')||a.parentElement;const input=$('input',box);if(input){input.value=Math.max(1,(Number(input.value)||1)+(a.matches('.plus')?1:-1));}return;}
   if(a.id==='catalogMenuHeading'){e.preventDefault();$('#left')?.classList.toggle('demo-open');return;}
-  if(a.closest('#geoPosition')){e.preventDefault();modal('<h3>Выберите ваш город</h3><label>Город<input id="demo-city" value="'+esc(state.city||'Город N')+'"></label><button class="demo-button" id="demo-city-save">Сохранить</button>');return;}
-  if(a.id==='demo-city-save'){state.city=$('#demo-city').value||'Город N';try{if(state.user)await save();$('#demo-dialog').remove();}catch(error){failure(error);}return;}
+  if(a.matches('.os-showpw')){const input=document.getElementById(a.getAttribute('aria-controls')),show=input.type==='password';input.type=show?'text':'password';a.textContent=show?'Скрыть':'Показать';a.setAttribute('aria-pressed',String(show));return;}
+  if(a.closest('#geoPosition')){e.preventDefault();cityModal();return;}
+  if(a.matches('[data-city]')){setCity(a.dataset.city);return;}
+  if(a.id==='demo-city-save'){const v=$('#demo-city').value.trim();if(v)setCity(v);else $('#demo-city').focus();return;}
   if(a.closest('#elementTools')||a.matches('.changeTabs a')){const href=a.getAttribute('href');if(href?.startsWith('#')){e.preventDefault();document.querySelector(href)?.scrollIntoView({behavior:'smooth'});}}
   if(a.getAttribute('href')==='#'&&!a.matches('.addCart,.plus,.minus')){
     e.preventDefault();
@@ -506,10 +534,9 @@ document.addEventListener('submit',async e=>{
   e.preventDefault();const f=e.target;
   if(f.id==='topSearchForm'){location.href=B+'search/?q='+encodeURIComponent(f.querySelector('[name=q]')?.value||'');return;}
   if(f.id==='demo-login'){
-    const data=new FormData(f);
-    if(data.has('confirm')&&data.get('confirm')!==data.get('password')){$('#demo-login-error').textContent='Пароли не совпадают';return;}
+    const data=new FormData(f),reg=f.dataset.mode==='register';
     if(saving)return;const button=f.querySelector('button[type=submit]');button.disabled=true;
-    try{state=await api(data.has('confirm')?'/register':'/login','POST',{email:data.get('email'),password:data.get('password'),name:data.get('name')||'',remember:data.has('confirm')||data.has('remember')});location.href=backUrl();}
+    try{state=await api(reg?'/register':'/login','POST',{email:data.get('email'),password:data.get('password'),name:data.get('name')||'',remember:reg||data.has('remember')});location.href=backUrl();}
     catch(error){$('#demo-login-error').textContent=error.message;button.disabled=false;}return;
   }
   if(f.id==='demo-forgot'){
@@ -534,6 +561,6 @@ const fresh=$('#demo-new');if(fresh){const list=P.filter(p=>p.new);fresh.innerHT
 const sale=$('#demo-sale');if(sale)sale.innerHTML='<p>Предложения из нашего каталога</p><div class="demo-grid">'+P.slice(0,4).map(card).join('')+'</div>';
 listing();   // needs no account data: runs before the state request so that a long list never flashes in full
 try{state=await api('/state');ready=true;}catch(error){failure(error);}
-header();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');
+header();showCity();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');
 const footer=document.createElement('div');footer.className='demo-sandbox-note';footer.textContent='ОфисСклад · Демонстрационный магазин. Заказы не передаются поставщику.';document.body.append(footer);document.body.dataset.ready='1';
 })();

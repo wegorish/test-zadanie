@@ -322,6 +322,65 @@ def fix_product_page(text):
     return text
 
 
+# ---------- P4: wholesale terms in sight ----------
+# Wording is a placeholder: the shop approves the final texts. Keep in step with js/config.js (minOrder, hours).
+MIN_ORDER = '5 000 ₽'
+HOURS = 'Пн–Пт 8:30–17:30'
+DEFAULT_CITY = 'Екатеринбург'
+REGIONS = ['Свердловская область', 'Алтайский край', 'Кузбасс', 'Красноярский край', 'Якутия',
+           'Иркутская область', 'Бурятия']
+
+
+def between(text, name, html_block, anchor_before=None, anchor_after=None):
+    """Puts html_block between <!-- os:name --> markers: replaced on later runs, inserted on the first one."""
+    block = '<!-- os:%s -->%s<!-- /os:%s -->' % (name, html_block, name)
+    pattern = re.compile(r'<!-- os:%s -->.*?<!-- /os:%s -->' % (name, name), re.S)
+    if pattern.search(text):
+        return pattern.sub(lambda m: block, text)
+    if anchor_before and anchor_before in text:
+        return text.replace(anchor_before, block + anchor_before, 1)
+    if anchor_after and anchor_after in text:
+        return text.replace(anchor_after, anchor_after + block, 1)
+    return text
+
+
+def terms_strip():
+    return ('<div class="os-terms"><div class="limiter"><ul>'
+            '<li><a href="%sconditions/">Мин. заказ %s</a></li>'
+            '<li><a href="%sdelivery/#regions" data-city-delivery="">Доставка в регионы через ТК</a></li>'
+            '<li>%s</li></ul></div></div>' % (BASE, MIN_ORDER, BASE, HOURS))
+
+
+def home_offer():
+    return ('<section class="os-hero" aria-labelledby="os-hero-title">'
+            '<h1 id="os-hero-title">Оптовый магазин канцтоваров и товаров для школы и офиса</h1>'
+            '<ul class="os-hero-terms">'
+            '<li><b>Минимальный заказ — %s</b><span>Цены для зарегистрированных клиентов</span></li>'
+            '<li><b>Отправка в регионы</b><span>Передаём груз в транспортную компанию в Екатеринбурге</span></li>'
+            '<li><b>Заказ как удобно</b><span>По коду, штрихкоду, списком или файлом из прайса</span></li>'
+            '</ul><p class="os-hero-actions">'
+            '<a class="os-hero-main" href="%scatalog/">Перейти в каталог</a>'
+            '<a href="%sauth/?register=yes">Зарегистрироваться</a>'
+            '<a href="%sdelivery/#regions">Доставка в регионы</a></p></section>'
+            % (MIN_ORDER, BASE, BASE, BASE))
+
+
+def delivery_regions():
+    todo = '<span class="os-todo">[уточнить]</span>'
+    rows = ''.join('<tr><th scope="row">%s</th><td>%s</td><td>%s</td><td>%s</td></tr>'
+                   % (r, 'Своя доставка по Екатеринбургу, по области — через ТК' if r == 'Свердловская область'
+                      else 'Через транспортную компанию', todo, todo) for r in REGIONS)
+    return ('<section id="regions" class="os-regions"><h2>Доставка в регионы</h2>'
+            '<ol class="os-steps"><li>Вы оформляете заказ от %s и выбираете транспортную компанию.</li>'
+            '<li>Мы собираем заказ и передаём груз в ТК в Екатеринбурге.</li>'
+            '<li>Присылаем номер накладной; доставку оплачиваете по тарифу ТК при получении.</li></ol>'
+            '<div class="os-regions-wrap"><table class="os-regions-table"><thead><tr><th scope="col">Регион</th>'
+            '<th scope="col">Как отправляем</th><th scope="col">Транспортные компании</th><th scope="col">Срок в пути</th>'
+            '</tr></thead><tbody>%s</tbody></table></div>'
+            '<p class="os-regions-note">Нет вашего региона? Отправляем в любой город России, где есть терминал ТК. '
+            'Позвоните — подскажем сроки и стоимость.</p></section>' % (MIN_ORDER, rows))
+
+
 def patch_page(rel, text, products):
     here = page_url(rel)
 
@@ -376,6 +435,19 @@ def patch_page(rel, text, products):
         text = fix_filters(text)
     if 'data-page="product:' in text:
         text = fix_product_page(text)
+
+    # P4: terms under the header, the city by default, the home offer, regions on the delivery page
+    text = between(text, 'terms', terms_strip(), anchor_before='<div class="color_white" id="main">')
+    text = text.replace('<a class="user-geo-position-value-link" href="#"><span>Определение</span></a>',
+                        '<a class="user-geo-position-value-link" href="#"><span>%s</span></a>' % DEFAULT_CITY)
+    if rel == 'index.html':
+        text = re.sub(r'<div id="sliderBlock">.*?</div>', '', text, count=1, flags=re.S)
+        text = between(text, 'offer', home_offer(), anchor_after='<div id="promoBlock">')
+    if rel == 'delivery/index.html':
+        # at the end of the text column, before the «Есть вопросы?» side block
+        m = re.search(r'</div>\s*<div class="global-information-block">', text)
+        anchor = m.group(0) if m else None
+        text = between(text, 'regions', delivery_regions(), anchor_before=anchor)
 
     # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
     scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)

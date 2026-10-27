@@ -245,3 +245,37 @@ body.os-filter-open{overflow:hidden}
 .os-ol-bad{color:#cb344a}.os-ol-table code{font:13px Menlo,Consolas,monospace;white-space:nowrap}.os-ol-miss td{background:#fff6f7}
 .os-ol-table td:nth-child(2){white-space:normal!important}.os-ol-result .demo-button{margin-top:16px}
 .os-orders td:last-child{text-align:right}
+/* ---- P4: wholesale terms in sight ---- */
+.os-terms{background:#f1effa;border-bottom:1px solid #e3e0f2;font:14px/1.4 Arial,sans-serif}
+.os-terms ul{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0;margin:0;padding:8px 0;list-style:none}
+.os-terms li{color:#3d3770}.os-terms li+li::before{content:'·';margin:0 12px;color:#9b93c9}
+.os-terms a{color:#3d3770;text-decoration:none;border-bottom:1px dotted #9b93c9}.os-terms a:hover{color:#4e478b;border-bottom-style:solid}
+.os-hero{margin:0 0 24px;padding:32px;border-radius:8px;background:#f1effa;color:#292929;font-family:Arial,sans-serif}
+.os-hero h1{margin:0 0 24px;font-size:30px;line-height:1.25;font-weight:700;color:#2f2a5c}
+.os-hero-terms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 24px;padding:0;list-style:none}
+.os-hero-terms li{display:flex;flex-direction:column;gap:4px;padding:16px;border-radius:8px;background:#fff;font-size:14px;line-height:1.4;color:#555}
+.os-hero-terms b{font-size:16px;color:#292929}
+.os-hero-actions{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;margin:0}
+.os-hero-actions a{color:#4e478b;font-size:15px}
+.os-hero-actions .os-hero-main{display:inline-block;padding:12px 24px;border-radius:8px;background:#4e478b;color:#fff!important;text-decoration:none}.os-hero-actions .os-hero-main:hover{background:#665da4}
+.os-regions{margin:32px 0 0;font:15px/1.5 Arial,sans-serif;color:#292929;text-align:left}
+.os-regions h2{font-size:23px;font-weight:400;margin:0 0 16px}
+.os-steps{margin:0 0 16px;padding-left:24px}.os-steps li{margin:0 0 8px}
+.os-regions-wrap{overflow-x:auto}
+.os-regions-table{width:100%;border-collapse:collapse}.os-regions-table th,.os-regions-table td{padding:12px;border-bottom:1px solid #e8e8e8;text-align:left;vertical-align:top}
+.os-regions-table thead th{background:#f3f3f3;font-weight:400;color:#555;font-size:14px}
+.os-todo{color:#b26a00;background:#fff4dc;padding:0 4px;border-radius:4px}
+.os-regions-note{margin:16px 0 0;color:#555}
+.os-reg-why{max-width:430px;margin:16px 0;padding:16px 24px;border-radius:8px;background:#f8f7fd;font-size:14px;line-height:1.5}.os-reg-why ul{margin:8px 0 0;padding-left:20px}
+.os-pw{position:relative}.os-pw input{padding-right:100px!important}
+.os-showpw{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin-top:-6px;padding:6px 8px;border:0;background:none;color:#4e478b;font:13px Arial,sans-serif;cursor:pointer}
+.demo-modal{max-height:calc(100vh - 24px);overflow:auto}   /* a tall window scrolls inside, its × stays on screen */
+.os-cities{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.os-cities button{padding:10px 12px;border:1px solid #cfcbe6;border-radius:8px;background:#fff;color:#292929;font:14px Arial,sans-serif;text-align:left;cursor:pointer}
+.os-cities button[aria-pressed=true]{border-color:#4e478b;background:#f1effa;color:#4e478b;font-weight:700}
+.os-cities button:hover{border-color:#4e478b}
+@media (max-width:800px){
+ .os-hero{padding:24px 16px}.os-hero h1{font-size:22px;margin-bottom:16px}
+ .os-hero-terms{grid-template-columns:1fr;gap:8px}
+ .os-terms{font-size:13px}.os-terms ul{justify-content:flex-start;padding:8px 12px}
+}
