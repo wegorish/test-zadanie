@@ -4,7 +4,7 @@ window.DEMO_STATIC=true;
 'use strict';
 (async () => {
 const B=window.DEMO_BASE||'/kanctovar/', P=window.DEMO_PRODUCTS||[], STATIC=window.DEMO_STATIC===true;
-const C=Object.assign({phone:'+7 (000) 000-00-00',phoneHref:'tel:+70000000000',email:'info@office-sklad.example',hours:'Пн–Пт 8:30–17:30',minOrder:5000,minPriceFrom:30000,pendingTtl:30*60e3},window.OS_CONFIG||{});
+const C=Object.assign({phone:'+7 (000) 000-00-00',phoneHref:'tel:+70000000000',email:'info@office-sklad.example',hours:'Пн–Пт 8:30–17:30',minOrder:5000,minPriceFrom:30000},window.OS_CONFIG||{});
 let state={cart:{},favorites:[],compare:[],orders:[],user:null},ready=false,saving=false,listFilter=null;   // listFilter: set by js/filter.js (price, properties)
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -32,8 +32,27 @@ function stateOf(users,email){
   const u=users[email];if(!u)return blankState();
   const date=t=>new Date(t).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   const orders=(store.get('orders')||[]).filter(o=>o.email===email).sort((a,b)=>b.id-a.id)
-    .map(o=>({id:String(o.id+40000),total:o.cents/100,items:o.items,details:o.details,date:date(o.created)}));
+    .map(o=>({id:String(o.id+40000),total:o.cents/100,items:o.items,details:o.details,date:date(o.created),sample:!!o.sample}));
   return {...u.state,user:u.name,email,orders};
+}
+// A guest's cart lives in this browser until sign-in; then it joins the account's cart (quantities add up).
+const guestState=()=>({...blankState(),cart:store.get('guestCart')||{}});
+function cleanCart(cart){
+  const clean={};
+  if(!cart||typeof cart!=='object'||Array.isArray(cart)||Object.keys(cart).length>P.length)fail('Некорректная корзина.');
+  for(const [id,q] of Object.entries(cart)){if(!(typeof id==='string'&&product(id))||!Number.isInteger(q)||q<1||q>9999)fail('Некорректное количество товара.');clean[id]=q;}
+  return clean;
+}
+// Test data: two past orders for a new account, so that «Повторить заказ» has something to repeat.
+const SAMPLE_ORDERS=[{days:41,items:{'2':50,'3':50,'4':100,'1':24}},{days:12,items:{'36':10,'65':20,'81':10,'141':10}}];
+function seedOrders(email){
+  const orders=store.get('orders')||[];let seq=store.get('seq')||0;
+  for(const o of SAMPLE_ORDERS){
+    const items=Object.fromEntries(Object.entries(o.items).filter(([id])=>product(id)));
+    const cents=Object.entries(items).reduce((s,[id,q])=>s+Math.round(product(id).price*100)*q,0);
+    orders.push({id:++seq,email,cents,items,details:{},created:Date.now()-o.days*86400e3,sample:true});
+  }
+  store.set('orders',orders);store.set('seq',seq);
 }
 const ORDER_FIELDS=[['name','Ф.И.О.',1],['email','E-Mail',1],['phone','Телефон',1],['zip','Индекс',1],['location','Местоположение',1],['city','Город',0],['address','Адрес доставки',1]];
 function orderDetails(body){
@@ -55,7 +74,7 @@ function orderDetails(body){
 }
 async function local(path,method,body){
   const users=store.get('users')||{},me=signedIn(users);
-  if(method==='GET'&&path==='/state')return stateOf(users,me);
+  if(method==='GET'&&path==='/state')return me?stateOf(users,me):guestState();
   if((path==='/register'||path==='/login')&&method==='POST'){
     const email=String(body.email||'').trim().toLowerCase(),password=body.password;
     if(typeof password!=='string'||password.length<8||password.length>128)fail('Пароль должен содержать от 8 до 128 символов.');
@@ -67,18 +86,21 @@ async function local(path,method,body){
       users[email]={name,salt,password:await digest(password,salt),state:{cart:{},favorites:[],compare:[],city:''},created:Date.now()};
       store.set('users',users);
     }else if(!users[email]||await digest(password,users[email].salt)!==users[email].password)fail('Неверный email или пароль.');
+    const u=users[email],guest=store.get('guestCart')||{},cart=u.state.cart||(u.state.cart={});
+    for(const [id,q] of Object.entries(guest))if(product(id))cart[id]=Math.min(9999,(cart[id]||0)+q);
+    if(!u.sampled){seedOrders(email);u.sampled=true;}
+    store.set('users',users);store.drop('guestCart');
     const remember=body.remember!==false;
     store.set('session',{email,expires:Date.now()+(remember?30*86400e3:86400e3),tab:!remember});
     if(!remember)document.cookie=ALIVE+'=1; path='+B+'; SameSite=Lax';
     return stateOf(users,email);
   }
-  if(path==='/logout'&&method==='POST'){store.drop('session');return blankState();}
+  if(path==='/logout'&&method==='POST'){store.drop('session');return guestState();}
+  if(!me&&path==='/state'&&method==='PUT'){store.set('guestCart',cleanCart(body.cart||{}));return guestState();}
   if(!me)fail('Войдите в аккаунт.');
   if(path==='/state'&&method==='PUT'){
-    const cart=body.cart||{},clean={},known=id=>typeof id==='string'&&!!product(id);
-    if(typeof cart!=='object'||Array.isArray(cart)||Object.keys(cart).length>P.length)fail('Некорректная корзина.');
-    for(const [id,q] of Object.entries(cart)){if(!known(id)||!Number.isInteger(q)||q<1||q>9999)fail('Некорректное количество товара.');clean[id]=q;}
-    const data={cart:clean,city:String(body.city??'').slice(0,100)};
+    const known=id=>typeof id==='string'&&!!product(id);
+    const data={cart:cleanCart(body.cart||{}),city:String(body.city??'').slice(0,100)};
     for(const field of ['favorites','compare']){
       const items=body[field]||[];
       if(!Array.isArray(items)||items.length>P.length||!items.every(known))fail('Некорректный список товаров.');
@@ -167,6 +189,7 @@ async function cartModalRun(act){
       const q=act==='set'?parseInt($('#dcm-qty').value):(state.cart[id]||1)+(act==='plus'?1:-1);
       state.cart[id]=Math.min(9999,Math.max(1,q||1));
     }else if(act==='remove'){delete state.cart[id];}
+    else if(!state.user){authModal(act==='compare'?'Сравнение — для зарегистрированных':'Избранное — для зарегистрированных','Войдите, чтобы сохранить товар: корзина при этом сохранится.');return;}
     else{const type=act==='compare'?'compare':'favorites',i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);}
     await save();
     if(act==='remove'){$('#demo-dialog')?.remove();return;}
@@ -205,7 +228,7 @@ function card(p){return '<article class="demo-card" data-product="'+p.id+'"><a c
   +'<div class="demo-card-price"><div class="demo-price">'+money(p.price)+' / '+esc(unit(p))+'</div><small class="demo-min">Мин. цена '+money(p.price*.89)+' '+minPriceTip()+'</small></div>'
   +'<div class="demo-card-buy"><input class="quantity" type="text" inputmode="numeric" maxlength="4" value="1" aria-label="Количество: '+esc(p.name)+'"><button class="demo-button" data-add="'+p.id+'">В корзину</button></div>'
   +'<div class="demo-card-extra"><button data-favorite="'+p.id+'">♡ Избранное</button><button data-compare="'+p.id+'">⇄ Сравнение</button></div></article>';}
-// ---- Sign-in from the place the buyer stopped at: backurl brings them back, a pending action finishes the click.
+// ---- Sign-in from the place the buyer stopped at: backurl brings them back.
 const here=()=>location.pathname+location.search;
 function authUrl(extra){return B+'auth/?'+(extra?extra+'&':'')+'backurl='+encodeURIComponent(here());}
 // Only a path of this site is followed: no scheme, no //host. Old-style paths ("/catalog/…") are read from the site root.
@@ -214,18 +237,10 @@ function backUrl(){
   if(!/^\/(?!\/)[^\\:]*$/.test(u)||u.startsWith(B+'auth/'))return B;
   return u.startsWith(B)?u:B+u.slice(1);
 }
-function guestModal(id,q){
-  const go=(href,cls,text)=>'<a class="demo-button'+cls+'" href="'+href+'" data-pending="'+esc(id)+'" data-q="'+q+'">'+text+'</a>';
-  modal('<h3 id="demo-guest-title">Войдите, чтобы добавить товар в корзину</h3><p>Корзина и цены доступны зарегистрированным покупателям. После входа вы вернётесь на эту страницу, а товар уже будет в корзине.</p>'
-   +'<div class="demo-dialog-actions">'+go(authUrl(),'','Войти')+go(authUrl('register=yes'),' demo-button-light','Зарегистрироваться')+'</div>');
-  $('#demo-dialog .demo-modal').setAttribute('aria-labelledby','demo-guest-title');
-}
-async function runPending(){
-  const p=store.get('pending');if(!p)return;
-  if(!(Date.now()-p.at<C.pendingTtl)){store.drop('pending');return;}
-  if(!state.user)return;                                            // still on the way to sign-in
-  store.drop('pending');
-  if(product(p.id))await add(p.id,Math.min(9999,Math.max(1,parseInt(p.q)||1)));
+// Sign-in offered where an account is needed (favourites, comparison, placing the order); the cart itself needs none.
+function authModal(title,text){
+  modal('<h3 id="demo-auth-title">'+esc(title)+'</h3><p>'+esc(text)+'</p><div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div>');
+  $('#demo-dialog .demo-modal').setAttribute('aria-labelledby','demo-auth-title');
 }
 // ---- Dead ends (empty cart, nothing found): a person to talk to.
 function managerBlock(){
@@ -250,7 +265,6 @@ function sendCallback(f){
 }
 async function add(id,q=1){
   if(!ready||saving)return;
-  if(!state.user){if(product(id))guestModal(id,q);return;}
   if(!product(id))return;
   state.cart[id]=Math.min(9999,(state.cart[id]||0)+q);try{await save();}catch(error){failure(error);return;}
   cartModal(id);
@@ -274,7 +288,7 @@ function checkoutForm(){
 }
 function cartLine(id,q){
   const p=product(id);
-  return '<tr data-line="'+id+'"><td data-label="Наименование"><a href="'+p.path+'"><img src="'+p.image+'" alt="">'+esc(p.name)+'</a></td><td data-label="В наличии">'+p.stock+'</td>'
+  return '<tr data-line="'+id+'"><td data-label="Наименование"><a href="'+p.path+'"><img src="'+p.image+'" alt="">'+esc(p.name)+'</a></td><td data-label="В наличии">'+(p.stock>0?p.stock.toLocaleString('ru-RU'):'<span class="os-stock os-out">'+(p.expected?'ожидается '+esc(p.expected):'нет')+'</span>')+'</td>'
    +'<td data-label="Количество"><input type="text" inputmode="numeric" maxlength="4" aria-label="Количество: '+esc(p.name)+'" value="'+q+'" data-qty="'+id+'"></td>'
    +'<td data-label="Стоимость">'+grp(p.price)+' руб. / '+esc(unit(p))+'</td><td data-label="Сумма" class="demo-line-sum">'+grp(Math.round(p.price*100)*q/100)+'</td>'
    +'<td data-label="Удалить"><button type="button" data-remove="'+id+'" aria-label="Удалить: '+esc(p.name)+'" title="Удалить">×</button></td></tr>';
@@ -290,8 +304,22 @@ function fillCart(){
     $('.demo-line-sum',row).textContent=grp(Math.round(product(id).price*100)*q/100);
   }
   $('#demo-cart-total').innerHTML='Всего товаров: <b>'+count()+'</b> Сумма: <b>'+rub(total())+'</b>';
-  $('#demo-pay-count').textContent=count();$('#demo-pay-sum').textContent=rub(total());
+  if($('#demo-pay-count')){$('#demo-pay-count').textContent=count();$('#demo-pay-sum').textContent=rub(total());}
+  $('#demo-cart-min').innerHTML=minOrderBar();
 }
+const rubles=n=>Math.ceil(n).toLocaleString('ru-RU')+' ₽';
+// «До минимального заказа 5 000 ₽ осталось 1 240 ₽» with a bar, or that the minimum is reached.
+function minOrderBar(){
+  const left=C.minOrder-total(),pct=Math.min(100,Math.round(total()/C.minOrder*100));
+  return '<div class="os-min'+(left>0?'':' os-min-ok')+'"><p>'+(left>0?'До минимального заказа '+rubles(C.minOrder)+' осталось <b>'+rubles(left)+'</b>':'Минимальная сумма заказа '+rubles(C.minOrder)+' набрана')+'</p>'
+   +'<div class="os-min-bar" role="progressbar" aria-label="Минимальный заказ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div></div>';
+}
+// A guest fills the cart freely; signing in comes at this step, and the cart stays.
+function guestCheckout(){
+  return '<div class="os-guest-checkout" id="os-guest-checkout"><h2>Оформление заказа</h2><p>Чтобы оформить заказ, войдите или зарегистрируйтесь — товары из корзины сохранятся.</p>'
+   +'<div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти и оформить</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div></div>';
+}
+const addAll=items=>cartOp(()=>{for(const [id,q] of items)if(product(id))state.cart[id]=Math.min(9999,(state.cart[id]||0)+q);});
 // Cart edits are queued (none is dropped), applied to the server (PUT /state) and shown; on a failure the cart goes back and the page says so.
 let cartQueue=Promise.resolve();
 function cartOp(change){
@@ -313,17 +341,18 @@ function renderCart(){
   const el=$('#demo-cart');if(!el)return;
   const params=new URLSearchParams(location.search), oid=params.get('orderId');
   if(oid&&!state.orders.some(o=>o.id===oid)){el.innerHTML='<p>Заказ не найден в вашем аккаунте.</p><a href="'+B+'auth/">Войти</a>';return;}
-  if(oid){const order=state.orders.find(o=>o.id===oid);el.innerHTML='<h2>Ваш заказ № '+esc(oid)+' оформлен</h2><p>Спасибо за заказ! Менеджер свяжется с вами в рабочее время.</p>'+(order?'<p>Сумма заказа: <b>'+money(order.total)+'</b></p>':'')+orderSummary(order)+'<p><a href="'+B+'personal/order/">История заказов</a></p><p class="demo-muted">Учебный магазин: заявка не передаётся поставщику, оплата не требуется.</p>';return;}
+  if(oid){const order=state.orders.find(o=>o.id===oid);el.innerHTML='<h2>Ваш заказ № '+esc(oid)+' оформлен</h2><p>Спасибо за заказ! Менеджер свяжется с вами в рабочее время.</p>'+(order?'<p>Сумма заказа: <b>'+money(order.total)+'</b></p>':'')+orderSummary(order)+'<p><button type="button" class="demo-button" data-repeat="'+esc(oid)+'">Повторить заказ</button></p><p><a href="'+B+'personal/order/">История заказов</a></p><p class="demo-muted">Учебный магазин: заявка не передаётся поставщику, оплата не требуется.</p>';return;}
   if(!Object.keys(state.cart).some(product)){el.innerHTML=NOTICE+'<div class="demo-empty"><h2>В корзине пока пусто</h2><p>Воспользуйтесь поиском или <a href="'+B+'catalog/">каталогом</a>, выберите нужные товары и добавьте их в корзину.</p><a class="demo-button" href="'+B+'catalog/">В каталог</a></div>'+managerBlock();return;}
   if(!$('#demo-cart-lines')){
-    el.innerHTML=NOTICE+'<div class="demo-actions"><span class="demo-actions-label">Доступные действия:</span>'
-     +'<button type="submit" form="demo-checkout" class="demo-act demo-act-main" id="orderMakeTop">Оформить заказ</button>'
+    const repeated=params.get('repeated');
+    el.innerHTML=(repeated?'<p class="os-note" role="status">Товары из заказа № '+esc(repeated)+' добавлены в корзину. Проверьте количество и оформите заказ.</p>':'')+NOTICE+'<div class="demo-actions"><span class="demo-actions-label">Доступные действия:</span>'
+     +(state.user?'<button type="submit" form="demo-checkout" class="demo-act demo-act-main" id="orderMakeTop">Оформить заказ</button>':'<a class="demo-act demo-act-main" href="#os-guest-checkout">Оформить заказ</a>')
      +'<a class="demo-act" href="'+B+'catalog/">Продолжить покупки</a>'
      +'<button type="button" class="demo-act" data-cart-clear>Очистить корзину</button>'
      +'<button type="button" class="demo-act" data-cart-excel>Скачать заказ в Excel</button></div>'
      +'<p id="demo-cart-error" role="alert"></p>'
      +'<div class="demo-table-wrap"><table class="demo-cart-table"><thead><tr><th>Наименование</th><th>В наличии</th><th>Количество</th><th>Стоимость</th><th>Сумма</th><th>Удалить</th></tr></thead><tbody id="demo-cart-lines"></tbody></table></div>'
-     +'<div class="demo-total" id="demo-cart-total"></div>'+checkoutForm();
+     +'<div class="demo-total" id="demo-cart-total"></div><div id="demo-cart-min"></div>'+(state.user?checkoutForm():guestCheckout());
   }
   fillCart();
 }
@@ -395,7 +424,16 @@ function renderAuth(){
   }
   el.innerHTML=tabs+'<form id="demo-login" class="demo-auth-form"><h2>'+(reg?'Регистрация':'Авторизация')+'</h2>'+(reg?'<label>Имя *<input name="name" autocomplete="given-name" required></label>':'')+'<label>Email *<input name="email" type="email" autocomplete="username" required></label><label>Пароль'+(reg?' (не менее 8 символов)':'')+' *<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="'+(reg?'new-password':'current-password')+'"></label>'+(reg?'<label>Подтверждение пароля *<input name="confirm" type="password" required minlength="8" autocomplete="new-password"></label><label>Название организации<input name="company"></label><label>Телефон<input name="phone"></label><label class="demo-consent"><input type="checkbox" required> Я согласен на обработку персональных данных</label>':'<div class="demo-login-extra"><label class="demo-consent"><input type="checkbox" name="remember" checked> Запомнить меня на этом компьютере</label><a href="'+link('forgot_password=yes')+'">Забыли пароль?</a></div>')+'<p id="demo-login-error" role="alert"></p><button class="demo-button" type="submit">'+(reg?'Зарегистрироваться':'Войти')+'</button></form>';
 }
-function renderOrders(){const el=$('#demo-orders');if(el)el.innerHTML=state.orders.length?state.orders.map(o=>'<p><a href="'+B+'personal/cart/?orderId='+o.id+'">Заказ № '+o.id+'</a> от '+esc(o.date)+': '+money(o.total)+(o.details?.name?'<br><small>'+esc(o.details.name)+', '+esc([o.details.zip,o.details.location,o.details.city,o.details.address].filter(Boolean).join(', '))+'</small>':'')+'</p>').join(''):'<p>Заказов пока нет.</p>';}
+// Order history: every order with «Повторить заказ» — its products go back into the cart, added to what is there.
+function renderOrders(){
+  const el=$('#demo-orders');if(!el)return;
+  if(!state.user){el.innerHTML='<p>История заказов и повтор заказа доступны после входа.</p><div class="demo-dialog-actions"><a class="demo-button" href="'+authUrl()+'">Войти</a><a class="demo-button demo-button-light" href="'+authUrl('register=yes')+'">Зарегистрироваться</a></div>';return;}
+  if(!state.orders.length){el.innerHTML='<p>Заказов пока нет.</p>';return;}
+  const lines=o=>Object.keys(o.items||{}).filter(product).length;
+  el.innerHTML='<div class="demo-table-wrap"><table class="demo-cart-table os-orders"><thead><tr><th>Заказ</th><th>Дата</th><th>Позиций</th><th>Сумма</th><th></th></tr></thead><tbody>'
+   +state.orders.map(o=>'<tr><td data-label="Заказ"><a href="'+B+'personal/cart/?orderId='+o.id+'">№ '+o.id+'</a>'+(o.sample?' <small class="demo-muted">пример, тестовые данные</small>':'')+'</td><td data-label="Дата">'+esc(o.date)+'</td><td data-label="Позиций">'+lines(o)+'</td><td data-label="Сумма">'+money(o.total)+'</td>'
+     +'<td><button type="button" class="demo-button" data-repeat="'+o.id+'">Повторить заказ</button></td></tr>').join('')+'</tbody></table></div>';
+}
 function renderList(type){const el=$('#demo-'+type);if(!el)return;const ids=state[type]||[];el.innerHTML=ids.length?'<div class="demo-grid">'+ids.map(id=>product(id)).filter(Boolean).map(card).join('')+'</div>':'<p>Вы пока не добавили товары.</p><p><a href="'+B+'catalog/">Перейти в каталог</a></p>';}
 // Section pages: every card of the section is in the HTML; sorting, page size, price filter and pagination are applied here.
 const SORTS={'новизне':'DATE_CREATE','популярности':'SHOW_COUNTER','алфавиту':'NAME','увеличению цены':'PRICE_ASC','уменьшению цены':'PRICE_DESC'};
@@ -419,7 +457,7 @@ function listing(){
   box.style.display=pages>1?'':'none';$('ul',box).innerHTML=html;
 }
 // What the modules in js/ (search, …) build their pages with: the same cards, prices and contacts as here.
-window.OS={B,C,esc,money,product,card,managerBlock,stockLabel,minPriceTip,unit,
+window.OS={B,C,esc,money,product,card,managerBlock,stockLabel,minPriceTip,unit,addAll,
   filterList(fn){listFilter=fn;listing();return $$('#catalogSection .product[data-product]').filter(c=>c.style.display!=='none').length;}};
 document.addEventListener('click',async e=>{
   const drop=e.target.closest('.dropDownList');
@@ -430,18 +468,18 @@ document.addEventListener('click',async e=>{
   }
   $$('.dropDownItems.opened').forEach(x=>x.classList.remove('opened'));
   const a=e.target.closest('a,button');if(!a)return;
-  if(a.matches('[data-pending]')){try{store.set('pending',{id:a.dataset.pending,q:a.dataset.q,at:Date.now()});}catch(error){}return;}   // the link itself leads to sign-in
   if(a.matches('[data-callback]')){e.preventDefault();callbackModal();return;}
   if(a.dataset.cm&&a.closest('#demo-dialog')){e.preventDefault();cartModalAction(a);return;}
   if(a.matches('[data-add],a.addCart')){e.preventDefault();const id=a.dataset.add||a.closest('[data-product]')?.dataset.product;const input=$$('input.qty,input.quantity,input[type=number]',a.closest('[data-product]')||document).find(x=>x.getClientRects().length);const q=Math.max(1,parseInt(input?.value)||1)*(Number(input?.dataset.mult)||1);add(id,q);return;}   // data-mult: pieces in the chosen pack (js/product.js)
   if(a.matches('[data-logout]')||a.getAttribute('href')==='#logout'){e.preventDefault();try{await api('/logout','POST',{});location.href=B;}catch(error){failure(error);}return;}
   const type=a.matches('[data-favorite],.addWishlist')?'favorites':a.matches('[data-compare],.addCompare')?'compare':null;
-  if(type){e.preventDefault();if(!ready||saving)return;if(!state.user){modal('<p>Для сохранения товаров войдите в аккаунт.</p><a href="'+B+'auth/">Вход</a>');return;}const id=a.dataset.favorite||a.dataset.compare||a.closest('[data-product]')?.dataset.product;if(!product(id))return;const i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);try{await save();}catch(error){failure(error);return;}a.classList.toggle('active',i<0);modal('<p>'+(i<0?'Товар добавлен':'Товар удалён')+'</p><a href="'+B+(type==='favorites'?'favorites/':'compare/')+'">'+(type==='favorites'?'Избранное':'Сравнение')+'</a>');renderList(type);return;}
+  if(type){e.preventDefault();if(!ready||saving)return;if(!state.user){authModal(type==='favorites'?'Избранное — для зарегистрированных':'Сравнение — для зарегистрированных','Войдите, чтобы сохранить товар: после входа вы вернётесь на эту страницу.');return;}const id=a.dataset.favorite||a.dataset.compare||a.closest('[data-product]')?.dataset.product;if(!product(id))return;const i=state[type].indexOf(id);if(i<0)state[type].push(id);else state[type].splice(i,1);try{await save();}catch(error){failure(error);return;}a.classList.toggle('active',i<0);modal('<p>'+(i<0?'Товар добавлен':'Товар удалён')+'</p><a href="'+B+(type==='favorites'?'favorites/':'compare/')+'">'+(type==='favorites'?'Избранное':'Сравнение')+'</a>');renderList(type);return;}
   if(a.matches('[data-remove]')){const id=a.dataset.remove;cartOp(()=>{delete state.cart[id];});return;}
   if(a.matches('[data-cart-clear]')){modal('<h3>Очистить корзину?</h3><p>Все товары будут удалены из корзины.</p><div class="demo-dialog-actions"><button type="button" class="demo-button" data-cart-clear-yes>Очистить</button><button type="button" class="demo-button demo-button-light" data-cart-clear-no>Отмена</button></div>');return;}
   if(a.matches('[data-cart-clear-no]')){$('#demo-dialog')?.remove();return;}
   if(a.matches('[data-cart-clear-yes]')){$('#demo-dialog')?.remove();cartOp(()=>{state.cart={};});return;}
   if(a.matches('[data-cart-excel]')){downloadExcel();return;}
+  if(a.matches('[data-repeat]')){e.preventDefault();const o=state.orders.find(x=>x.id===a.dataset.repeat);if(!o||!ready)return;await addAll(Object.entries(o.items||{}));location.href=B+'personal/cart/?repeated='+encodeURIComponent(o.id);return;}
   if(a.matches('.plus,.minus')){e.preventDefault();const box=a.closest('.quantity, .quantityContainer')||a.parentElement;const input=$('input',box);if(input){input.value=Math.max(1,(Number(input.value)||1)+(a.matches('.plus')?1:-1));}return;}
   if(a.id==='catalogMenuHeading'){e.preventDefault();$('#left')?.classList.toggle('demo-open');return;}
   if(a.closest('#geoPosition')){e.preventDefault();modal('<h3>Выберите ваш город</h3><label>Город<input id="demo-city" value="'+esc(state.city||'Город N')+'"></label><button class="demo-button" id="demo-city-save">Сохранить</button>');return;}
@@ -497,6 +535,5 @@ const sale=$('#demo-sale');if(sale)sale.innerHTML='<p>Предложения и�
 listing();   // needs no account data: runs before the state request so that a long list never flashes in full
 try{state=await api('/state');ready=true;}catch(error){failure(error);}
 header();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');
-if(ready)await runPending();
 const footer=document.createElement('div');footer.className='demo-sandbox-note';footer.textContent='ОфисСклад · Демонстрационный магазин. Заказы не передаются поставщику.';document.body.append(footer);document.body.dataset.ready='1';
 })();

@@ -379,7 +379,7 @@ def patch_page(rel, text, products):
 
     # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
     scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)
-                      for name in ('js/config.js', 'demo.js', 'js/catalog.js', 'js/filter.js', 'js/product.js',
+                      for name in ('js/config.js', 'demo.js', 'js/catalog.js', 'js/filter.js', 'js/product.js', 'js/order-list.js',
                                    'js/search.js', 'js/search-ui.js'))
     text = re.sub(r'(?:<script defer="True" src="%s[^"]*"></script>)+' % re.escape(BASE), scripts, text)
     # The search index and the abbreviation list are JSON files of this site, read with fetch()

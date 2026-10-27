@@ -77,7 +77,7 @@ body[data-page=cart] #nextSection,body[data-page=cart] #smartFilter{display:none
 /* ---- P0: sign-in from the guest window, contacts in dead ends, mobile header ---- */
 /* sign-in, sign-up and the cart are working pages: no catalogue column, no notebook filter */
 body[data-page=auth] #left,body[data-page=cart] #left{display:none!important}
-body[data-page=auth] #right,body[data-page=cart] #right{padding-left:0}
+@media (min-width:801px){body[data-page=auth] #right,body[data-page=cart] #right{padding-left:0}}   /* phones keep the side gutter */
 .demo-auth-tabs a{text-decoration:none}.demo-auth-tabs a.active{font-weight:700;border-bottom:2px solid #4e478b;padding-bottom:13px}
 .demo-login-extra{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:16px 0}.demo-login-extra .demo-consent{margin:0}
 .demo-modal .demo-dialog-actions .demo-button{text-align:center}
@@ -231,3 +231,17 @@ body.os-view-list .demo-card-extra{display:none}
 #smartFilter.opened #smartFilterControls{position:sticky;bottom:0;z-index:2;margin:0!important;padding:12px 16px!important;background:#fff;border-top:1px solid #eee}   /* «Показать (N)» always in reach */
 .os-filter-close{width:44px;height:44px;border:0!important;background:none!important;font:28px/1 Arial,sans-serif;color:#666!important;cursor:pointer}
 body.os-filter-open{overflow:hidden}
+/* ---- P3: cart as a working list, guest checkout, order by list, order history ---- */
+.os-note{padding:12px 16px;border-radius:8px;background:#eef7ee;color:#1e5f22}
+.os-min{margin:16px 0;padding:16px;border-radius:8px;background:#fff8e6;font:15px Arial,sans-serif}.os-min p{margin:0 0 8px}
+.os-min-bar{height:8px;border-radius:4px;background:#ece7d6;overflow:hidden}.os-min-bar i{display:block;height:100%;background:#e0a100;border-radius:4px}
+.os-min.os-min-ok{background:#eef7ee}.os-min.os-min-ok .os-min-bar i{background:#2e7d32}
+.os-guest-checkout{margin:32px 0 0;padding:24px;border:1px solid #e3e0f2;border-radius:8px;background:#f8f7fd}.os-guest-checkout h2{margin-top:0}
+.os-orderlist{margin:0 0 24px;border:1px solid #e3e0f2;border-radius:8px;background:#fff;font:15px/1.5 Arial,sans-serif;color:#292929}
+.os-orderlist summary{padding:16px 24px;cursor:pointer;color:#4e478b}.os-orderlist summary b{color:#292929}
+.os-ol-body{padding:0 24px 24px}.os-ol-body label[for]{display:block;margin:0 0 8px;color:#555;font-size:14px}
+.demo-content .os-orderlist textarea{display:block;width:100%;box-sizing:border-box;margin:0 0 12px;padding:12px;border:1px solid #ddd;border-radius:8px;font:14px/1.5 Menlo,Consolas,monospace;resize:vertical}
+.os-ol-actions{display:flex;flex-wrap:wrap;gap:12px}.os-ol-file{cursor:pointer;border-radius:2px}
+.os-ol-bad{color:#cb344a}.os-ol-table code{font:13px Menlo,Consolas,monospace;white-space:nowrap}.os-ol-miss td{background:#fff6f7}
+.os-ol-table td:nth-child(2){white-space:normal!important}.os-ol-result .demo-button{margin-top:16px}
+.os-orders td:last-child{text-align:right}

@@ -7,6 +7,5 @@ window.OS_CONFIG={
   hours:'Пн–Пт 8:30–17:30',
   minOrder:5000,          // руб., minimum order sum
   minPriceFrom:30000,     // руб., order sum from which «Мин.цена» applies — ЗАГЛУШКА, уточнить у заказчика
-  pendingTtl:30*60e3,     // ms: how long «add to cart after sign-in» waits for the sign-in
   METRIKA_ID:''           // Яндекс.Метрика counter id; empty — goals are not sent
 };
