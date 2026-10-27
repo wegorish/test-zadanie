@@ -220,3 +220,14 @@ body.os-view-list .demo-card-extra{display:none}
  #pictureContainer,#pictureContainer .pictureSlider,#pictureContainer .item{height:auto!important;min-height:0!important}
  #pictureContainer .pictureSlider img{max-height:200px!important;width:auto!important;margin:0 auto;display:block;object-fit:contain}
 }
+/* ---- P2: «Фильтр по параметрам» that works (js/filter.js) ---- */
+#smartFilter .paramsBoxTitle{cursor:pointer}
+#smartFilter ul.os-all li.off{display:list-item!important;opacity:.55}
+.os-filter-empty{margin:0 0 16px;padding:16px 24px;border-radius:8px;background:#f8f7fd;font:15px Arial,sans-serif}.os-filter-empty[hidden]{display:none}.os-filter-empty p{margin:0 0 12px}
+.os-filter-head{display:none}
+.os-filter-shade{position:fixed;inset:0;z-index:10001;background:#0006}.os-filter-shade[hidden]{display:none}
+#main #smartFilter.opened{position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;width:min(360px,100vw)!important;margin:0!important;overflow:auto;z-index:10002;box-shadow:0 0 40px #0004;transition:none!important}
+#smartFilter.opened .os-filter-head{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;padding:12px 16px;background:#fff;border-bottom:1px solid #eee;font:18px Arial,sans-serif}
+#smartFilter.opened #smartFilterControls{position:sticky;bottom:0;z-index:2;margin:0!important;padding:12px 16px!important;background:#fff;border-top:1px solid #eee}   /* «Показать (N)» always in reach */
+.os-filter-close{width:44px;height:44px;border:0!important;background:none!important;font:28px/1 Arial,sans-serif;color:#666!important;cursor:pointer}
+body.os-filter-open{overflow:hidden}

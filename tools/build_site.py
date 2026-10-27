@@ -106,12 +106,34 @@ def card_packs(text):
             for u, n in re.findall(r'([^,()]+?)\s*\(([\d\s\xa0]+)\s*[^)]*\)', html.unescape(m.group(1)))]
 
 
+def filter_titles():
+    """Names of the properties the section filters offer («Производитель», «Цвет», …), price aside."""
+    names = set()
+    for path in html_files():
+        m = re.search(r'<div id="smartFilter">.*?<ul id="smartFilterControls">', read(path), re.S)
+        if m:
+            names.update(t.strip() for t in re.findall(r'<div class="paramsBoxTitle">\s*<span>(.*?)</span>', m.group(0), re.S))
+    names.discard('Цена')
+    return names
+
+
+def card_filter_props(text, titles):
+    """The product's values for those properties, spelt as the filter spells them (norm_value)."""
+    props = {}
+    for name, value in re.findall(r'<td class="name"><span>([^<]*)</span>\s*</td>\s*<td>([^<]*)</td>', text):
+        name = html.unescape(name).strip()
+        if name in titles and value.strip() and name not in props:
+            props[name] = norm_value(name, value)
+    return props
+
+
 def build_data(changed):
     """products.json is the source; demo.js carries the same list inline (line 1).
     Stock, the expected date and the packs are taken from the product pages: that is what the buyer sees there."""
     path = os.path.join(ROOT, 'products.json')
     products = json.loads(read(path))
     fresh = new_product_ids()
+    titles = filter_titles()
     for p in products:
         if p['id'] in fresh:
             p['new'] = True
@@ -128,6 +150,11 @@ def build_data(changed):
             p['packs'] = packs
         else:
             p.pop('packs', None)
+        props = card_filter_props(page, titles)
+        if props:
+            p['props'] = props
+        else:
+            p.pop('props', None)
     data = json.dumps(products, ensure_ascii=False)
     write(path, data, changed)
     js_path = os.path.join(ROOT, 'demo.js')
@@ -352,7 +379,7 @@ def patch_page(rel, text, products):
 
     # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
     scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)
-                      for name in ('js/config.js', 'demo.js', 'js/catalog.js', 'js/product.js',
+                      for name in ('js/config.js', 'demo.js', 'js/catalog.js', 'js/filter.js', 'js/product.js',
                                    'js/search.js', 'js/search-ui.js'))
     text = re.sub(r'(?:<script defer="True" src="%s[^"]*"></script>)+' % re.escape(BASE), scripts, text)
     # The search index and the abbreviation list are JSON files of this site, read with fetch()
