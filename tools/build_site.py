@@ -9,6 +9,7 @@ script can be run any number of times and gives the same result.
     python3 tools/build_site.py --check  # report what would change, exit 1 if anything
 """
 import glob
+import html
 import json
 import os
 import re
@@ -106,6 +107,46 @@ def build_data(changed):
     eol = '\r\n' if first.endswith('\r') else '\n'
     write(js_path, 'window.DEMO_PRODUCTS=' + data + ';' + eol + rest, changed)
     return {p['id']: p for p in products}
+
+
+def card_properties(text):
+    """«Характеристики» of a product page: name -> value (first occurrence)."""
+    props = {}
+    for k, v in re.findall(r'<div class="propertyName">(.*?)</div>\s*<div class="propertyValue">(.*?)</div>', text, re.S):
+        k = re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', k))).strip()
+        v = re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', v))).strip()
+        props.setdefault(k, v)
+    return props
+
+
+def build_index(changed, products):
+    """search-index.json: everything the search needs about a product, taken from its own page."""
+    items = []
+    for p in sorted(products.values(), key=lambda p: int(p['id'])):
+        text = read(os.path.join(ROOT, p['path'][len(BASE):]))
+        props = card_properties(text)
+        crumbs = re.findall(r'<span itemprop="title">([^<]*)</span>', text)
+        code = props.get('Код', p['code'])
+        items.append({
+            'id': p['id'],
+            'name': p['name'],
+            'code': code,
+            'codeNum': re.sub(r'^\d+-0*', '', code),             # 00-00179195 -> 179195
+            'whCode': props.get('КодСклад', ''),
+            'barcode': props.get('ШтрихКод', ''),
+            'sku': props.get('Артикул', p.get('sku', '')),
+            'brand': props.get('Производитель', ''),
+            'section': p['section'],
+            'sectionName': html.unescape(crumbs[-1]) if len(crumbs) > 2 else p['group'],
+            'price': p['price'],
+            'unit': p['unit'],
+            'stock': p['stock'],
+            'pop': p['pop'],
+            'new': bool(p.get('new')),
+            'url': p['path'],
+            'image': p['image'],
+        })
+    write(os.path.join(ROOT, 'search-index.json'), json.dumps(items, ensure_ascii=False, indent=0) + '\n', changed)
 
 
 # ---------- pages ----------
@@ -213,11 +254,12 @@ def patch_page(rel, text, products):
         text = re.sub(r'<link href="/upload/[^"]*" itemprop="image"/>',
                       '<link href="%s" itemprop="image"/>' % products[own.group(1)]['image'], text)
 
-    # Site settings are loaded before demo.js
-    if 'js/config.js' not in text:
-        text = text.replace('<script defer="True" src="%sdemo.js"></script>' % BASE,
-                            '<script defer="True" src="%sjs/config.js"></script>'
-                            '<script defer="True" src="%sdemo.js"></script>' % (BASE, BASE))
+    # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
+    scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)
+                      for name in ('js/config.js', 'demo.js', 'js/search.js', 'js/search-ui.js'))
+    text = re.sub(r'(?:<script defer="True" src="%s[^"]*"></script>)+' % re.escape(BASE), scripts, text)
+    # The search index and the abbreviation list are JSON files of this site, read with fetch()
+    text = text.replace("connect-src 'none'", "connect-src 'self'")
     return text
 
 
@@ -254,6 +296,7 @@ def fix_sitemap(changed):
 def main():
     changed = []
     products = build_data(changed)
+    build_index(changed, products)
     make_new_page(changed, products)
     for path in html_files():
         rel = os.path.relpath(path, ROOT)

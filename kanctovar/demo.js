@@ -410,15 +410,8 @@ function listing(){
   html+='<li class="bx-pag-next">'+(cur<pages?'<a href="'+link(cur+1)+'"><span>Вперед</span></a>':'<span>Вперед</span>')+'</li>';
   box.style.display=pages>1?'':'none';$('ul',box).innerHTML=html;
 }
-function search(){
-  const el=$('#demo-results');if(!el)return;
-  const q=new URLSearchParams(location.search).get('q')||'';
-  const flat=s=>s.toLocaleLowerCase().replace(/[\s\-_.\/]+/g,'');
-  const tokens=q.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-  const result=tokens.length?P.filter(p=>{const hay=(p.name+' '+(p.sku||'')+' '+(p.code||'')).toLocaleLowerCase(),hf=flat(hay);return tokens.every(t=>hay.includes(t)||hf.includes(flat(t)));}):[];
-  el.innerHTML='<p>Поиск: <b>'+esc(q)+'</b>. Найдено: '+result.length+'</p>'+(result.length?'<div class="demo-grid">'+result.map(card).join('')+'</div>':'<p>По вашему запросу ничего не найдено.</p>'+managerBlock());
-  const field=$('#searchQuery');if(field)field.value=q;
-}
+// What the modules in js/ (search, …) build their pages with: the same cards, prices and contacts as here.
+window.OS={B,C,esc,money,product,card,managerBlock};
 document.addEventListener('click',async e=>{
   const drop=e.target.closest('.dropDownList');
   if(drop){
@@ -495,7 +488,7 @@ const fresh=$('#demo-new');if(fresh){const list=P.filter(p=>p.new);fresh.innerHT
 const sale=$('#demo-sale');if(sale)sale.innerHTML='<p>Предложения из нашего каталога</p><div class="demo-grid">'+P.slice(0,4).map(card).join('')+'</div>';
 listing();   // needs no account data: runs before the state request so that a long list never flashes in full
 try{state=await api('/state');ready=true;}catch(error){failure(error);}
-header();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');search();
+header();renderCart();renderAuth();renderOrders();renderList('favorites');renderList('compare');
 if(ready)await runPending();
 const footer=document.createElement('div');footer.className='demo-sandbox-note';footer.textContent='ОфисСклад · Демонстрационный магазин. Заказы не передаются поставщику.';document.body.append(footer);document.body.dataset.ready='1';
 })();
