@@ -1,0 +1,1841 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ОфисСклад: аналитика Метрики</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --neutral: #b4b3ab;
+  --wash: rgba(11, 11, 11, 0.045);
+  --warn-wash: rgba(235, 104, 52, 0.10);
+  --info-wash: rgba(42, 120, 214, 0.10);
+  --shadow: 0 6px 24px rgba(11, 11, 11, 0.14);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --neutral: #5a5955;
+    --wash: rgba(255, 255, 255, 0.06);
+    --warn-wash: rgba(217, 89, 38, 0.16);
+    --info-wash: rgba(57, 135, 229, 0.16);
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --neutral: #5a5955;
+  --wash: rgba(255, 255, 255, 0.06);
+  --warn-wash: rgba(217, 89, 38, 0.16);
+  --info-wash: rgba(57, 135, 229, 0.16);
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+h1, h2, h3, p { margin: 0; }
+strong { font-weight: 650; }
+a { color: var(--s1); }
+button { font: inherit; color: inherit; }
+
+/* top bar */
+.top {
+  position: sticky; top: 0; z-index: 30;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.top .wrap { display: flex; align-items: center; gap: 12px; height: 52px; }
+.top .logo { font-weight: 650; white-space: nowrap; font-size: 14px; }
+.top nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+.top nav::-webkit-scrollbar { display: none; }
+.top nav a {
+  color: var(--ink2); text-decoration: none; font-size: 13px; white-space: nowrap;
+  padding: 6px 10px; border-radius: 8px;
+}
+.top nav a:hover { background: var(--wash); color: var(--ink); }
+.theme-btn {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+  padding: 5px 10px; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.theme-btn:hover { background: var(--wash); }
+
+/* headings */
+.hero { padding: 40px 0 8px; }
+.eyebrow { color: var(--ink2); font-size: 13px; letter-spacing: .02em; }
+h1 { font-size: 30px; line-height: 1.2; font-weight: 650; margin: 6px 0 10px; letter-spacing: -0.01em; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; align-items: end; margin-top: 18px; }
+.hero-fig { font-size: 88px; line-height: 1; font-weight: 650; letter-spacing: -0.03em; color: var(--ink); }
+.hero-fig small { font-size: 40px; font-weight: 600; margin-left: 2px; }
+.hero-cap { font-size: 17px; line-height: 1.45; color: var(--ink2); margin-top: 8px; max-width: 520px; }
+.hero-cap strong { color: var(--ink); }
+.readme { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; font-size: 13.5px; color: var(--ink2); }
+.readme h3 { font-size: 13px; color: var(--ink); margin-bottom: 6px; }
+.readme ul { margin: 0; padding-left: 18px; }
+.readme li { margin: 3px 0; }
+.chip-est {
+  display: inline-block; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 6px;
+  border: 1px solid var(--border); color: var(--ink2); background: var(--wash); vertical-align: 1px;
+}
+
+.sec { padding: 44px 0 4px; }
+.sec h2 { font-size: 22px; line-height: 1.25; font-weight: 650; letter-spacing: -0.01em; display: flex; gap: 10px; align-items: baseline; }
+.sec h2 .num { color: var(--muted); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.lead { color: var(--ink2); margin: 6px 0 18px; max-width: 760px; }
+
+/* grid + cards */
+.g { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.c12 { grid-column: span 12; } .c8 { grid-column: span 8; } .c7 { grid-column: span 7; }
+.c6 { grid-column: span 6; } .c5 { grid-column: span 5; } .c4 { grid-column: span 4; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px 16px; min-width: 0;
+}
+.card-h { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.card-h h3 { font-size: 16px; line-height: 1.35; font-weight: 650; }
+.card-h .sub { color: var(--ink2); font-size: 13.5px; margin-top: 3px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; padding: 2px; gap: 2px; flex: none; }
+.seg button { border: 0; background: transparent; padding: 3px 9px; border-radius: 6px; font-size: 12px; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--wash); color: var(--ink); font-weight: 600; }
+.card-b { min-width: 0; }
+.scroll-x { overflow-x: auto; }
+.foot { color: var(--ink2); font-size: 12.5px; margin-top: 10px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 10px; font-size: 12.5px; color: var(--ink2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+.note {
+  border-radius: 10px; padding: 10px 12px; font-size: 13.5px; color: var(--ink2);
+  background: var(--wash); border: 1px solid var(--border); margin-top: 12px;
+}
+.note b { color: var(--ink); font-weight: 650; }
+.note.warn { background: var(--warn-wash); }
+.note.info { background: var(--info-wash); }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.tile .l { color: var(--ink2); font-size: 13px; }
+.tile .v { font-size: 30px; line-height: 1.15; font-weight: 650; margin: 4px 0 4px; letter-spacing: -0.01em; }
+.tile .s { color: var(--ink2); font-size: 12.5px; }
+
+/* key moments */
+.km-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.km { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.km .n { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.km h3 { font-size: 15.5px; line-height: 1.35; font-weight: 650; margin: 4px 0 8px; }
+.km p { color: var(--ink2); font-size: 14px; }
+.km p strong { color: var(--ink); }
+
+/* charts */
+svg.chart { display: block; width: 100%; height: auto; overflow: visible; outline: none; }
+svg.chart:focus-visible { outline: 2px solid var(--s1); outline-offset: 4px; border-radius: 6px; }
+svg.chart text { font-family: inherit; fill: var(--muted); font-size: 11px; }
+svg.chart text.val { fill: var(--ink); font-size: 12px; font-weight: 600; }
+svg.chart text.band { fill: var(--ink2); font-size: 11px; }
+.mini-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.mini h4 { margin: 0 0 4px; font-size: 13px; font-weight: 650; }
+
+/* tooltip */
+.tip {
+  position: fixed; z-index: 60; display: none; pointer-events: none; max-width: 320px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 11px; box-shadow: var(--shadow); font-size: 12.5px;
+}
+.tip .t { font-weight: 650; margin-bottom: 5px; }
+.tip .r { display: flex; gap: 8px; align-items: center; padding: 1px 0; }
+.tip .k { width: 12px; height: 2px; border-radius: 1px; flex: none; background: transparent; }
+.tip .v { font-weight: 650; font-variant-numeric: tabular-nums; }
+.tip .n { color: var(--ink2); }
+
+/* bar tables */
+.bt { min-width: 480px; }
+.bt-row {
+  display: grid; grid-template-columns: var(--tpl); gap: 10px; align-items: center;
+  padding: 6px 6px; border-radius: 8px; border-top: 1px solid var(--grid);
+}
+.bt-row:first-child { border-top: 0; }
+.bt-head { color: var(--muted); font-size: 12px; border-top: 0; padding-bottom: 4px; }
+.bt-row:not(.bt-head):hover, .bt-row:not(.bt-head):focus-visible { background: var(--wash); outline: none; }
+.bt-l { font-size: 13.5px; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.bt-l small { display: block; color: var(--ink2); font-size: 12px; margin-top: 1px; }
+.bt-bar { height: 12px; min-width: 0; }
+.bt-fill { display: flex; gap: 2px; height: 12px; }
+.bt-fill i { display: block; min-width: 2px; height: 100%; border-radius: 0; }
+.bt-fill i:last-child { border-radius: 0 4px 4px 0; }
+.bt-c { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bt-head .bt-c { white-space: normal; line-height: 1.2; }
+.tag {
+  display: inline-block; font-size: 11px; line-height: 1; padding: 3px 6px; border-radius: 6px; margin-left: 6px;
+  border: 1px solid var(--border); color: var(--ink2); background: var(--wash); vertical-align: 1px; white-space: nowrap;
+}
+.tag.warn { border-color: var(--s2); }
+.tag.info { border-color: var(--s1); }
+
+/* hstack */
+.hs { display: grid; grid-template-columns: 70px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+.hs-l { font-size: 13px; color: var(--ink2); }
+.hs-bar { display: flex; gap: 2px; height: 22px; }
+.hs-seg { display: flex; align-items: center; justify-content: center; min-width: 2px; color: #fff; font-size: 12px; font-weight: 600; }
+.hs-seg:last-child { border-radius: 0 4px 4px 0; }
+
+/* plain tables */
+.tbl-wrap { max-height: 380px; overflow: auto; }
+table.tbl { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.tbl th, table.tbl td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--grid); vertical-align: top; }
+table.tbl th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-size: 12px; font-weight: 500; z-index: 1; }
+table.tbl td.num, table.tbl th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.tbl tr:last-child td { border-bottom: 0; }
+
+/* recommendations */
+.filters { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 14px; }
+.fgroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fgroup .fl { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.fchip {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 11px;
+  font-size: 13px; cursor: pointer; color: var(--ink2);
+}
+.fchip:hover { background: var(--wash); }
+.fchip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.fall { margin-left: auto; }
+.rec-list { display: grid; gap: 10px; }
+details.rec { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+details.rec[hidden] { display: none; }
+details.rec > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 14px; align-items: start; }
+details.rec > summary::-webkit-details-marker { display: none; }
+details.rec > summary:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; border-radius: var(--radius); }
+.rid { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 3px; min-width: 26px; }
+.rt { font-size: 15.5px; font-weight: 650; line-height: 1.35; }
+.rhook { grid-column: 2; color: var(--ink2); font-size: 13.5px; }
+.rtags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; grid-row: 1; grid-column: 3; }
+.pill { font-size: 11.5px; line-height: 1; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink2); white-space: nowrap; }
+.pill.p1 { background: var(--ink); color: var(--surface); border-color: var(--ink); font-weight: 600; }
+.pill.p2 { border-color: var(--s1); color: var(--ink); }
+.chev { color: var(--muted); font-size: 12px; margin-left: 4px; transition: transform .15s; display: inline-block; }
+details[open] .chev { transform: rotate(90deg); }
+.rbody { padding: 2px 18px 18px 58px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.rbody h4 { font-size: 12px; color: var(--muted); font-weight: 500; margin: 0 0 6px; text-transform: none; letter-spacing: .01em; }
+.rbody ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink2); }
+.rbody li { margin: 0 0 5px; }
+.rbody p { font-size: 13.5px; color: var(--ink2); }
+.rbody strong { color: var(--ink); }
+
+.road { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.road .col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.road h3 { font-size: 14.5px; font-weight: 650; }
+.road .when { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.road ol { margin: 0; padding-left: 20px; font-size: 13.5px; color: var(--ink2); }
+.road li { margin: 0 0 6px; }
+.road li b { color: var(--ink); font-weight: 600; }
+
+ul.plain { margin: 0; padding-left: 18px; color: var(--ink2); font-size: 13.5px; }
+ul.plain li { margin: 0 0 6px; }
+ul.plain strong { color: var(--ink); }
+
+footer { padding: 36px 0 60px; color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 960px) {
+  .c8, .c7, .c6, .c5, .c4 { grid-column: span 12; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .km-grid, .road { grid-template-columns: 1fr; }
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-fig { font-size: 72px; }
+  .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rbody { grid-template-columns: 1fr; padding-left: 18px; }
+  details.rec > summary { grid-template-columns: auto 1fr; }
+  .rtags { grid-column: 2; grid-row: auto; justify-content: flex-start; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 14px; }
+  h1 { font-size: 25px; }
+  .tile .v { font-size: 25px; }
+  .card { padding: 14px 14px 12px; }
+  /* bar-tables: label + bar on top, figures underneath instead of sideways scroll */
+  .bt { min-width: 0 !important; }
+  .bt-row.bt-head { display: none; }
+  .bt-row { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 4px; }
+  .bt-l, .bt-bar { flex: 0 0 100%; }
+  .bt-c { text-align: left; white-space: normal; font-size: 12.5px; }
+  .bt-c::before { content: attr(data-l) ": "; color: var(--muted); font-size: 11.5px; }
+}
+@media print {
+  .top, .filters, .seg, .theme-btn { display: none !important; }
+  body { background: #fff; }
+  .card, .km, .tile, details.rec { break-inside: avoid; }
+}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="logo">ОфисСклад · Метрика</span>
+    <nav aria-label="Разделы">
+      <a href="#km">Главное</a>
+      <a href="#kpi">Показатели</a>
+      <a href="#dyn">Динамика</a>
+      <a href="#quality">Роботы</a>
+      <a href="#audience">Аудитория</a>
+      <a href="#sources">Источники</a>
+      <a href="#behavior">Поведение</a>
+      <a href="#queries">Запросы</a>
+      <a href="#goals">Цели</a>
+      <a href="#growth">Точки роста</a>
+      <a href="#plan">План</a>
+      <a href="#limits">Ограничения</a>
+    </nav>
+    <button class="theme-btn" id="theme-btn" type="button" aria-label="Сменить тему">Тема</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero" id="top">
+    <div class="eyebrow">Оптовый интернет-магазин товаров для школы и офиса · Яндекс.Метрика · 22.07–20.10.2026 (91 день)</div>
+    <h1>Что показывает Метрика и где расти</h1>
+    <div class="hero-grid" id="hero-mount"></div>
+  </section>
+
+  <section class="sec" id="km">
+    <h2><span class="num">01</span>Главное за две минуты</h2>
+    <p class="lead">Шесть выводов из выгрузки. Каждый подтверждён цифрами ниже; оценки помечены значком «оценка», а допущения расписаны в конце.</p>
+    <div class="km-grid" id="km-mount"></div>
+  </section>
+
+  <section class="sec" id="kpi">
+    <h2><span class="num">02</span>Ключевые показатели</h2>
+    <p class="lead">Цифры «как в Метрике» (с роботами) и рядом — оценка без роботов там, где её можно посчитать.</p>
+    <div class="tiles" id="kpi-mount"></div>
+  </section>
+
+  <section class="sec" id="dyn">
+    <h2><span class="num">03</span>Динамика</h2>
+    <p class="lead">Живой трафик ровный и привязан к будням. Скачки на графике — в основном роботы; один всплеск настоящий.</p>
+    <div class="g" id="dyn-mount"></div>
+  </section>
+
+  <section class="sec" id="quality">
+    <h2><span class="num">04</span>Качество данных: роботы</h2>
+    <p class="lead">Прежде чем считать конверсию, нужно понять, сколько в данных настоящих людей.</p>
+    <div class="g" id="quality-mount"></div>
+  </section>
+
+  <section class="sec" id="audience">
+    <h2><span class="num">05</span>Аудитория</h2>
+    <p class="lead">Кто приходит, откуда и как часто возвращается.</p>
+    <div class="g" id="audience-mount"></div>
+  </section>
+
+  <section class="sec" id="sources">
+    <h2><span class="num">06</span>Источники трафика</h2>
+    <p class="lead">Откуда приходят визиты и какие каналы почти не используются.</p>
+    <div class="g" id="sources-mount"></div>
+  </section>
+
+  <section class="sec" id="behavior">
+    <h2><span class="num">07</span>Поведение на сайте</h2>
+    <p class="lead">Что люди делают на сайте: ищут, собирают корзину, входят в кабинет.</p>
+    <div class="g" id="behavior-mount"></div>
+  </section>
+
+  <section class="sec" id="queries">
+    <h2><span class="num">08</span>Поисковые запросы и входы из поиска</h2>
+    <p class="lead">Чем люди пользуются в Яндексе и Google, чтобы найти магазин и товары.</p>
+    <div class="g" id="queries-mount"></div>
+  </section>
+
+  <section class="sec" id="goals">
+    <h2><span class="num">09</span>Цели счётчика</h2>
+    <p class="lead">Какие действия фиксирует Метрика и можно ли по ним считать конверсию.</p>
+    <div class="g" id="goals-mount"></div>
+  </section>
+
+  <section class="sec" id="growth">
+    <h2><span class="num">10</span>Точки роста и улучшения</h2>
+    <p class="lead">Идеи сгруппированы по теме и приоритету. Без интерфейса и дизайна: измерения, поиск и каталог, рассылки, SEO, процессы с клиентами. Раскройте карточку — там данные, действия и метрика успеха.</p>
+    <div class="filters" id="filters-mount"></div>
+    <div class="rec-list" id="rec-mount"></div>
+  </section>
+
+  <section class="sec" id="plan">
+    <h2><span class="num">11</span>План на 90 дней и точка отсчёта</h2>
+    <p class="lead">Порядок работ и значения, с которыми потом сравниваем результат.</p>
+    <div class="road" id="road-mount"></div>
+    <div class="g" id="baseline-mount" style="margin-top:16px"></div>
+  </section>
+
+  <section class="sec" id="limits">
+    <h2><span class="num">12</span>Ограничения данных и задачи для этапа UI/UX</h2>
+    <p class="lead">Что нужно учитывать при чтении отчёта и что мы сознательно отложили.</p>
+    <div class="g" id="limits-mount"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Источник: выгрузка Яндекс.Метрики (metrika.md), счётчик магазина «ОфисСклад». Период 22.07.2026–20.10.2026, если не указано иное. Отчёт собран 26.10.2026.</div>
+</footer>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const D = {"general":{"Визиты":56904,"Люди":20722,"Просмотры":558546,"Отказы, %":24.87,"Глубина, стр.":9.82,"Длит. визита, с":653.7},"days":[{"d":"2026-07-22","visits":618,"people":421,"robots":1.62,"wd":2,"robotVisits":10,"clean":608},{"d":"2026-07-23","visits":586,"people":409,"robots":3.24,"wd":3,"robotVisits":19,"clean":567},{"d":"2026-07-24","visits":484,"people":362,"robots":4.34,"wd":4,"robotVisits":21,"clean":463},{"d":"2026-07-25","visits":257,"people":181,"robots":3.89,"wd":5,"robotVisits":10,"clean":247},{"d":"2026-07-26","visits":280,"people":205,"robots":4.29,"wd":6,"robotVisits":12,"clean":268},{"d":"2026-07-27","visits":652,"people":438,"robots":3.53,"wd":0,"robotVisits":23,"clean":629},{"d":"2026-07-28","visits":642,"people":423,"robots":3.43,"wd":1,"robotVisits":22,"clean":620},{"d":"2026-07-29","visits":734,"people":521,"robots":2.59,"wd":2,"robotVisits":19,"clean":715},{"d":"2026-07-30","visits":569,"people":404,"robots":1.23,"wd":3,"robotVisits":7,"clean":562},{"d":"2026-07-31","visits":576,"people":401,"robots":8.33,"wd":4,"robotVisits":48,"clean":528},{"d":"2026-08-01","visits":280,"people":208,"robots":7.86,"wd":5,"robotVisits":22,"clean":258},{"d":"2026-08-02","visits":265,"people":183,"robots":6.04,"wd":6,"robotVisits":16,"clean":249},{"d":"2026-08-03","visits":615,"people":416,"robots":3.25,"wd":0,"robotVisits":20,"clean":595},{"d":"2026-08-04","visits":703,"people":455,"robots":3.27,"wd":1,"robotVisits":23,"clean":680},{"d":"2026-08-05","visits":655,"people":442,"robots":1.68,"wd":2,"robotVisits":11,"clean":644},{"d":"2026-08-06","visits":719,"people":479,"robots":3.76,"wd":3,"robotVisits":27,"clean":692},{"d":"2026-08-07","visits":636,"people":466,"robots":4.87,"wd":4,"robotVisits":31,"clean":605},{"d":"2026-08-08","visits":326,"people":243,"robots":5.21,"wd":5,"robotVisits":17,"clean":309},{"d":"2026-08-09","visits":304,"people":226,"robots":5.26,"wd":6,"robotVisits":16,"clean":288},{"d":"2026-08-10","visits":719,"people":469,"robots":4.03,"wd":0,"robotVisits":29,"clean":690},{"d":"2026-08-11","visits":767,"people":519,"robots":3.65,"wd":1,"robotVisits":28,"clean":739},{"d":"2026-08-12","visits":812,"people":565,"robots":4.93,"wd":2,"robotVisits":40,"clean":772},{"d":"2026-08-13","visits":1085,"people":834,"robots":10.78,"wd":3,"robotVisits":117,"clean":968},{"d":"2026-08-14","visits":1055,"people":841,"robots":2.18,"wd":4,"robotVisits":23,"clean":1032},{"d":"2026-08-15","visits":400,"people":294,"robots":4.5,"wd":5,"robotVisits":18,"clean":382},{"d":"2026-08-16","visits":319,"people":220,"robots":5.96,"wd":6,"robotVisits":19,"clean":300},{"d":"2026-08-17","visits":770,"people":497,"robots":3.25,"wd":0,"robotVisits":25,"clean":745},{"d":"2026-08-18","visits":788,"people":511,"robots":3.05,"wd":1,"robotVisits":24,"clean":764},{"d":"2026-08-19","visits":780,"people":506,"robots":3.59,"wd":2,"robotVisits":28,"clean":752},{"d":"2026-08-20","visits":779,"people":538,"robots":3.85,"wd":3,"robotVisits":30,"clean":749},{"d":"2026-08-21","visits":655,"people":455,"robots":2.75,"wd":4,"robotVisits":18,"clean":637},{"d":"2026-08-22","visits":318,"people":234,"robots":4.72,"wd":5,"robotVisits":15,"clean":303},{"d":"2026-08-23","visits":328,"people":232,"robots":1.52,"wd":6,"robotVisits":5,"clean":323},{"d":"2026-08-24","visits":769,"people":501,"robots":2.34,"wd":0,"robotVisits":18,"clean":751},{"d":"2026-08-25","visits":767,"people":524,"robots":3.52,"wd":1,"robotVisits":27,"clean":740},{"d":"2026-08-26","visits":752,"people":515,"robots":3.46,"wd":2,"robotVisits":26,"clean":726},{"d":"2026-08-27","visits":703,"people":489,"robots":2.56,"wd":3,"robotVisits":18,"clean":685},{"d":"2026-08-28","visits":662,"people":482,"robots":3.47,"wd":4,"robotVisits":23,"clean":639},{"d":"2026-08-29","visits":362,"people":268,"robots":1.1,"wd":5,"robotVisits":4,"clean":358},{"d":"2026-08-30","visits":361,"people":252,"robots":3.05,"wd":6,"robotVisits":11,"clean":350},{"d":"2026-08-31","visits":745,"people":481,"robots":2.55,"wd":0,"robotVisits":19,"clean":726},{"d":"2026-09-01","visits":1066,"people":829,"robots":40.43,"wd":1,"robotVisits":431,"clean":635},{"d":"2026-09-02","visits":1491,"people":1210,"robots":48.63,"wd":2,"robotVisits":725,"clean":766},{"d":"2026-09-03","visits":731,"people":474,"robots":2.19,"wd":3,"robotVisits":16,"clean":715},{"d":"2026-09-04","visits":675,"people":437,"robots":2.07,"wd":4,"robotVisits":14,"clean":661},{"d":"2026-09-05","visits":334,"people":239,"robots":4.19,"wd":5,"robotVisits":14,"clean":320},{"d":"2026-09-06","visits":301,"people":208,"robots":3.65,"wd":6,"robotVisits":11,"clean":290},{"d":"2026-09-07","visits":702,"people":472,"robots":2.42,"wd":0,"robotVisits":17,"clean":685},{"d":"2026-09-08","visits":768,"people":489,"robots":1.69,"wd":1,"robotVisits":13,"clean":755},{"d":"2026-09-09","visits":681,"people":460,"robots":2.5,"wd":2,"robotVisits":17,"clean":664},{"d":"2026-09-10","visits":612,"people":429,"robots":2.29,"wd":3,"robotVisits":14,"clean":598},{"d":"2026-09-11","visits":533,"people":383,"robots":2.25,"wd":4,"robotVisits":12,"clean":521},{"d":"2026-09-12","visits":302,"people":223,"robots":1.66,"wd":5,"robotVisits":5,"clean":297},{"d":"2026-09-13","visits":267,"people":202,"robots":3.37,"wd":6,"robotVisits":9,"clean":258},{"d":"2026-09-14","visits":670,"people":443,"robots":1.64,"wd":0,"robotVisits":11,"clean":659},{"d":"2026-09-15","visits":674,"people":449,"robots":2.52,"wd":1,"robotVisits":17,"clean":657},{"d":"2026-09-16","visits":692,"people":439,"robots":2.17,"wd":2,"robotVisits":15,"clean":677},{"d":"2026-09-17","visits":1341,"people":1101,"robots":55.18,"wd":3,"robotVisits":740,"clean":601},{"d":"2026-09-18","visits":1022,"people":829,"robots":44.42,"wd":4,"robotVisits":454,"clean":568},{"d":"2026-09-19","visits":874,"people":768,"robots":65.68,"wd":5,"robotVisits":574,"clean":300},{"d":"2026-09-20","visits":769,"people":668,"robots":69.05,"wd":6,"robotVisits":531,"clean":238},{"d":"2026-09-21","visits":842,"people":571,"robots":14.85,"wd":0,"robotVisits":125,"clean":717},{"d":"2026-09-22","visits":807,"people":550,"robots":11.65,"wd":1,"robotVisits":94,"clean":713},{"d":"2026-09-23","visits":637,"people":421,"robots":2.04,"wd":2,"robotVisits":13,"clean":624},{"d":"2026-09-24","visits":756,"people":558,"robots":20.24,"wd":3,"robotVisits":153,"clean":603},{"d":"2026-09-25","visits":796,"people":634,"robots":21.23,"wd":4,"robotVisits":169,"clean":627},{"d":"2026-09-26","visits":244,"people":190,"robots":15.57,"wd":5,"robotVisits":38,"clean":206},{"d":"2026-09-27","visits":232,"people":171,"robots":9.48,"wd":6,"robotVisits":22,"clean":210},{"d":"2026-09-28","visits":596,"people":401,"robots":2.01,"wd":0,"robotVisits":12,"clean":584},{"d":"2026-09-29","visits":691,"people":469,"robots":2.17,"wd":1,"robotVisits":15,"clean":676},{"d":"2026-09-30","visits":631,"people":404,"robots":1.58,"wd":2,"robotVisits":10,"clean":621},{"d":"2026-10-01","visits":990,"people":770,"robots":38.08,"wd":3,"robotVisits":377,"clean":613},{"d":"2026-10-02","visits":915,"people":734,"robots":41.53,"wd":4,"robotVisits":380,"clean":535},{"d":"2026-10-03","visits":266,"people":208,"robots":11.28,"wd":5,"robotVisits":30,"clean":236},{"d":"2026-10-04","visits":380,"people":306,"robots":39.74,"wd":6,"robotVisits":151,"clean":229},{"d":"2026-10-05","visits":749,"people":524,"robots":18.69,"wd":0,"robotVisits":140,"clean":609},{"d":"2026-10-06","visits":733,"people":483,"robots":8.46,"wd":1,"robotVisits":62,"clean":671},{"d":"2026-10-07","visits":707,"people":476,"robots":6.22,"wd":2,"robotVisits":44,"clean":663},{"d":"2026-10-08","visits":668,"people":471,"robots":7.78,"wd":3,"robotVisits":52,"clean":616},{"d":"2026-10-09","visits":600,"people":419,"robots":6.67,"wd":4,"robotVisits":40,"clean":560},{"d":"2026-10-10","visits":248,"people":174,"robots":1.21,"wd":5,"robotVisits":3,"clean":245},{"d":"2026-10-11","visits":270,"people":191,"robots":11.48,"wd":6,"robotVisits":31,"clean":239},{"d":"2026-10-12","visits":640,"people":453,"robots":3.59,"wd":0,"robotVisits":23,"clean":617},{"d":"2026-10-13","visits":657,"people":437,"robots":0,"wd":1,"robotVisits":0,"clean":657},{"d":"2026-10-14","visits":667,"people":451,"robots":0,"wd":2,"robotVisits":0,"clean":667},{"d":"2026-10-15","visits":684,"people":423,"robots":0,"wd":3,"robotVisits":0,"clean":684},{"d":"2026-10-16","visits":604,"people":405,"robots":3.31,"wd":4,"robotVisits":20,"clean":584},{"d":"2026-10-17","visits":265,"people":196,"robots":4.53,"wd":5,"robotVisits":12,"clean":253},{"d":"2026-10-18","visits":247,"people":178,"robots":8.1,"wd":6,"robotVisits":20,"clean":227},{"d":"2026-10-19","visits":622,"people":420,"robots":3.86,"wd":0,"robotVisits":24,"clean":598},{"d":"2026-10-20","visits":658,"people":459,"robots":2.74,"wd":1,"robotVisits":18,"clean":640}],"days_all":[{"d":"2026-07-21","visits":6,"people":6,"robots":0,"wd":1,"robotVisits":0,"clean":6},{"d":"2026-07-22","visits":618,"people":421,"robots":1.62,"wd":2,"robotVisits":10,"clean":608},{"d":"2026-07-23","visits":586,"people":409,"robots":3.24,"wd":3,"robotVisits":19,"clean":567},{"d":"2026-07-24","visits":484,"people":362,"robots":4.34,"wd":4,"robotVisits":21,"clean":463},{"d":"2026-07-25","visits":257,"people":181,"robots":3.89,"wd":5,"robotVisits":10,"clean":247},{"d":"2026-07-26","visits":280,"people":205,"robots":4.29,"wd":6,"robotVisits":12,"clean":268},{"d":"2026-07-27","visits":652,"people":438,"robots":3.53,"wd":0,"robotVisits":23,"clean":629},{"d":"2026-07-28","visits":642,"people":423,"robots":3.43,"wd":1,"robotVisits":22,"clean":620},{"d":"2026-07-29","visits":734,"people":521,"robots":2.59,"wd":2,"robotVisits":19,"clean":715},{"d":"2026-07-30","visits":569,"people":404,"robots":1.23,"wd":3,"robotVisits":7,"clean":562},{"d":"2026-07-31","visits":576,"people":401,"robots":8.33,"wd":4,"robotVisits":48,"clean":528},{"d":"2026-08-01","visits":280,"people":208,"robots":7.86,"wd":5,"robotVisits":22,"clean":258},{"d":"2026-08-02","visits":265,"people":183,"robots":6.04,"wd":6,"robotVisits":16,"clean":249},{"d":"2026-08-03","visits":615,"people":416,"robots":3.25,"wd":0,"robotVisits":20,"clean":595},{"d":"2026-08-04","visits":703,"people":455,"robots":3.27,"wd":1,"robotVisits":23,"clean":680},{"d":"2026-08-05","visits":655,"people":442,"robots":1.68,"wd":2,"robotVisits":11,"clean":644},{"d":"2026-08-06","visits":719,"people":479,"robots":3.76,"wd":3,"robotVisits":27,"clean":692},{"d":"2026-08-07","visits":636,"people":466,"robots":4.87,"wd":4,"robotVisits":31,"clean":605},{"d":"2026-08-08","visits":326,"people":243,"robots":5.21,"wd":5,"robotVisits":17,"clean":309},{"d":"2026-08-09","visits":304,"people":226,"robots":5.26,"wd":6,"robotVisits":16,"clean":288},{"d":"2026-08-10","visits":719,"people":469,"robots":4.03,"wd":0,"robotVisits":29,"clean":690},{"d":"2026-08-11","visits":767,"people":519,"robots":3.65,"wd":1,"robotVisits":28,"clean":739},{"d":"2026-08-12","visits":812,"people":565,"robots":4.93,"wd":2,"robotVisits":40,"clean":772},{"d":"2026-08-13","visits":1085,"people":834,"robots":10.78,"wd":3,"robotVisits":117,"clean":968},{"d":"2026-08-14","visits":1055,"people":841,"robots":2.18,"wd":4,"robotVisits":23,"clean":1032},{"d":"2026-08-15","visits":400,"people":294,"robots":4.5,"wd":5,"robotVisits":18,"clean":382},{"d":"2026-08-16","visits":319,"people":220,"robots":5.96,"wd":6,"robotVisits":19,"clean":300},{"d":"2026-08-17","visits":770,"people":497,"robots":3.25,"wd":0,"robotVisits":25,"clean":745},{"d":"2026-08-18","visits":788,"people":511,"robots":3.05,"wd":1,"robotVisits":24,"clean":764},{"d":"2026-08-19","visits":780,"people":506,"robots":3.59,"wd":2,"robotVisits":28,"clean":752},{"d":"2026-08-20","visits":779,"people":538,"robots":3.85,"wd":3,"robotVisits":30,"clean":749},{"d":"2026-08-21","visits":655,"people":455,"robots":2.75,"wd":4,"robotVisits":18,"clean":637},{"d":"2026-08-22","visits":318,"people":234,"robots":4.72,"wd":5,"robotVisits":15,"clean":303},{"d":"2026-08-23","visits":328,"people":232,"robots":1.52,"wd":6,"robotVisits":5,"clean":323},{"d":"2026-08-24","visits":769,"people":501,"robots":2.34,"wd":0,"robotVisits":18,"clean":751},{"d":"2026-08-25","visits":767,"people":524,"robots":3.52,"wd":1,"robotVisits":27,"clean":740},{"d":"2026-08-26","visits":752,"people":515,"robots":3.46,"wd":2,"robotVisits":26,"clean":726},{"d":"2026-08-27","visits":703,"people":489,"robots":2.56,"wd":3,"robotVisits":18,"clean":685},{"d":"2026-08-28","visits":662,"people":482,"robots":3.47,"wd":4,"robotVisits":23,"clean":639},{"d":"2026-08-29","visits":362,"people":268,"robots":1.1,"wd":5,"robotVisits":4,"clean":358},{"d":"2026-08-30","visits":361,"people":252,"robots":3.05,"wd":6,"robotVisits":11,"clean":350},{"d":"2026-08-31","visits":745,"people":481,"robots":2.55,"wd":0,"robotVisits":19,"clean":726},{"d":"2026-09-01","visits":1066,"people":829,"robots":40.43,"wd":1,"robotVisits":431,"clean":635},{"d":"2026-09-02","visits":1491,"people":1210,"robots":48.63,"wd":2,"robotVisits":725,"clean":766},{"d":"2026-09-03","visits":731,"people":474,"robots":2.19,"wd":3,"robotVisits":16,"clean":715},{"d":"2026-09-04","visits":675,"people":437,"robots":2.07,"wd":4,"robotVisits":14,"clean":661},{"d":"2026-09-05","visits":334,"people":239,"robots":4.19,"wd":5,"robotVisits":14,"clean":320},{"d":"2026-09-06","visits":301,"people":208,"robots":3.65,"wd":6,"robotVisits":11,"clean":290},{"d":"2026-09-07","visits":702,"people":472,"robots":2.42,"wd":0,"robotVisits":17,"clean":685},{"d":"2026-09-08","visits":768,"people":489,"robots":1.69,"wd":1,"robotVisits":13,"clean":755},{"d":"2026-09-09","visits":681,"people":460,"robots":2.5,"wd":2,"robotVisits":17,"clean":664},{"d":"2026-09-10","visits":612,"people":429,"robots":2.29,"wd":3,"robotVisits":14,"clean":598},{"d":"2026-09-11","visits":533,"people":383,"robots":2.25,"wd":4,"robotVisits":12,"clean":521},{"d":"2026-09-12","visits":302,"people":223,"robots":1.66,"wd":5,"robotVisits":5,"clean":297},{"d":"2026-09-13","visits":267,"people":202,"robots":3.37,"wd":6,"robotVisits":9,"clean":258},{"d":"2026-09-14","visits":670,"people":443,"robots":1.64,"wd":0,"robotVisits":11,"clean":659},{"d":"2026-09-15","visits":674,"people":449,"robots":2.52,"wd":1,"robotVisits":17,"clean":657},{"d":"2026-09-16","visits":692,"people":439,"robots":2.17,"wd":2,"robotVisits":15,"clean":677},{"d":"2026-09-17","visits":1341,"people":1101,"robots":55.18,"wd":3,"robotVisits":740,"clean":601},{"d":"2026-09-18","visits":1022,"people":829,"robots":44.42,"wd":4,"robotVisits":454,"clean":568},{"d":"2026-09-19","visits":874,"people":768,"robots":65.68,"wd":5,"robotVisits":574,"clean":300},{"d":"2026-09-20","visits":769,"people":668,"robots":69.05,"wd":6,"robotVisits":531,"clean":238},{"d":"2026-09-21","visits":842,"people":571,"robots":14.85,"wd":0,"robotVisits":125,"clean":717},{"d":"2026-09-22","visits":807,"people":550,"robots":11.65,"wd":1,"robotVisits":94,"clean":713},{"d":"2026-09-23","visits":637,"people":421,"robots":2.04,"wd":2,"robotVisits":13,"clean":624},{"d":"2026-09-24","visits":756,"people":558,"robots":20.24,"wd":3,"robotVisits":153,"clean":603},{"d":"2026-09-25","visits":796,"people":634,"robots":21.23,"wd":4,"robotVisits":169,"clean":627},{"d":"2026-09-26","visits":244,"people":190,"robots":15.57,"wd":5,"robotVisits":38,"clean":206},{"d":"2026-09-27","visits":232,"people":171,"robots":9.48,"wd":6,"robotVisits":22,"clean":210},{"d":"2026-09-28","visits":596,"people":401,"robots":2.01,"wd":0,"robotVisits":12,"clean":584},{"d":"2026-09-29","visits":691,"people":469,"robots":2.17,"wd":1,"robotVisits":15,"clean":676},{"d":"2026-09-30","visits":631,"people":404,"robots":1.58,"wd":2,"robotVisits":10,"clean":621},{"d":"2026-10-01","visits":990,"people":770,"robots":38.08,"wd":3,"robotVisits":377,"clean":613},{"d":"2026-10-02","visits":915,"people":734,"robots":41.53,"wd":4,"robotVisits":380,"clean":535},{"d":"2026-10-03","visits":266,"people":208,"robots":11.28,"wd":5,"robotVisits":30,"clean":236},{"d":"2026-10-04","visits":380,"people":306,"robots":39.74,"wd":6,"robotVisits":151,"clean":229},{"d":"2026-10-05","visits":749,"people":524,"robots":18.69,"wd":0,"robotVisits":140,"clean":609},{"d":"2026-10-06","visits":733,"people":483,"robots":8.46,"wd":1,"robotVisits":62,"clean":671},{"d":"2026-10-07","visits":707,"people":476,"robots":6.22,"wd":2,"robotVisits":44,"clean":663},{"d":"2026-10-08","visits":668,"people":471,"robots":7.78,"wd":3,"robotVisits":52,"clean":616},{"d":"2026-10-09","visits":600,"people":419,"robots":6.67,"wd":4,"robotVisits":40,"clean":560},{"d":"2026-10-10","visits":248,"people":174,"robots":1.21,"wd":5,"robotVisits":3,"clean":245},{"d":"2026-10-11","visits":270,"people":191,"robots":11.48,"wd":6,"robotVisits":31,"clean":239},{"d":"2026-10-12","visits":640,"people":453,"robots":3.59,"wd":0,"robotVisits":23,"clean":617},{"d":"2026-10-13","visits":657,"people":437,"robots":0,"wd":1,"robotVisits":0,"clean":657},{"d":"2026-10-14","visits":667,"people":451,"robots":0,"wd":2,"robotVisits":0,"clean":667},{"d":"2026-10-15","visits":684,"people":423,"robots":0,"wd":3,"robotVisits":0,"clean":684},{"d":"2026-10-16","visits":604,"people":405,"robots":3.31,"wd":4,"robotVisits":20,"clean":584},{"d":"2026-10-17","visits":265,"people":196,"robots":4.53,"wd":5,"robotVisits":12,"clean":253},{"d":"2026-10-18","visits":247,"people":178,"robots":8.1,"wd":6,"robotVisits":20,"clean":227},{"d":"2026-10-19","visits":622,"people":420,"robots":3.86,"wd":0,"robotVisits":24,"clean":598},{"d":"2026-10-20","visits":658,"people":459,"robots":2.74,"wd":1,"robotVisits":18,"clean":640},{"d":"2026-10-21","visits":692,"people":466,"robots":4.48,"wd":2,"robotVisits":31,"clean":661}],"daily_sum_visits":56904,"daily_sum_robot_visits":6657,"newret":{"header":["Новый посетитель","Визиты","Люди","Отказы, %"],"rows":[["Вернувшиеся посетители",35323,3578,7.67],["Новые посетители",21581,20719,53.01]],"total":["Итого",56904,20722,24.87]},"devices":{"header":["Устройство","Визиты","Люди","Отказы, %","Роботы, %"],"rows":[["ПК",48436,15902,25.26,13.49],["Смартфоны",8288,4753,22.74,1.46],["Планшеты",179,69,17.32,0],["ТВ",1,1,0,0]],"total":["Итого",56904,20722,24.87,11.7]},"sources":{"header":["Источник трафика","Визиты","Люди","Отказы, %","Роботы, %"],"rows":[["Переходы из поисковых систем",27730,10120,16.14,0.31],["Прямые заходы",17189,10031,52.09,37.88],["Внутренние переходы",9980,936,4.46,0.11],["Переходы по ссылкам на сайтах",1880,576,10.27,2.5],["Переходы из социальных сетей",42,8,7.14,0]],"total":["Итого",56821,20641,24.76,11.71]},"months":{"header":["month","Визиты","Люди","Просмотры","Отказы, %","Глубина, стр.","Длит. визита, с"],"rows":[["7",5404,2349,58189,17.76,10.77,758.2],["8",19199,7218,209295,20.37,10.9,714.9],["9",20737,9449,187575,31.41,9.05,600.2],["10",12262,4998,109499,23.52,8.93,599.0]],"total":["Итого",57602,20902,564558,24.77,9.8,653.0]},"regions":{"header":["regionAreaName","Визиты","Люди","Отказы, %"],"rows":[["Свердловская область",16431,1848,4.87],["Не определено",7316,5710,72.06],["Алтайский край",3974,333,3.17],["Кемеровская область (Кузбасс)",3571,338,4.82],["Москва и Московская область",3177,2468,35.85],["Красноярский край",2410,424,8.26],["Область не определена",1607,1517,90.79],["Республика Саха (Якутия)",1200,245,8.58],["Иркутская область",1173,209,8.61],["Республика Бурятия",1149,99,3.92]],"total":["Итого",56904,20722,24.87]},"cities":{"header":["Город","Визиты","Люди","Отказы, %"],"rows":[["Екатеринбург",14114,1612,4.78],["Барнаул",2866,255,3.52],["Москва",1969,1515,33.57],["Красноярск",1626,328,10.39],["Кемерово",1172,114,5.63],["Улан-Удэ",974,87,3.8],["Сингапур",807,794,97.77],["Санкт-Петербург",804,647,31.59],["Томск",627,124,6.7],["Якутск",556,182,14.21]],"total":["Итого",43234,12778,16.9]},"engines":{"header":["Поисковик","Визиты","Люди","Отказы, %","Роботы, %"],"rows":[["Яндекс, результаты поиска",16630,5041,14.1,0.36],["Google, результаты поиска",8604,3564,18.44,0.07],["Мобильный Яндекс",1953,1299,19.15,0.77],["Bing, результаты поиска",163,71,21.47,0.61],["Яндекс.Картинки",113,99,44.25,0],["Умная камера Яндекса",112,104,29.46,0.89],["Google: мобильное приложение",101,98,43.56,0],["Яндекс: мобильное приложение",31,16,19.35,9.68],["DuckDuckGo",13,6,15.38,0],["Rambler, результаты поиска",7,3,14.29,0],["Яндекс.Карты",3,2,0,0]],"total":["Итого",27730,10120,16.14,0.31]},"referrals":{"header":["Сайт-источник","Визиты","Люди","Отказы, %","Роботы, %"],"rows":[["ntp.msn.com",372,16,2.96,0],["link.2gis.ru",342,199,14.33,13.16],["24-ok.ru",298,43,16.11,0],["saleykt.ru",288,106,13.19,0],["e.mail.ru",220,23,0.91,0],["samson.team",136,52,3.68,0],["alice.yandex.ru",45,32,20,0],["spshka.ru",31,15,0,0],["iframe-yang.yandex",18,17,22.22,0],["android-app",17,8,0,0],["pasman.bitrix24.ru",16,3,0,0],["iframe-tasks.yandex",13,13,69.23,0],["metrika.yandex.ru",10,3,10,0],["chatgpt.com",8,6,25,0],["mail.rambler.ru",7,2,42.86,0],["aocr.org",6,6,33.33,16.67],["kwork.ru",6,2,0,0],["ibta.ru",4,2,0,0],["officesklad.example",4,2,25,0],["cloudparser.ru",3,2,0,0],["perplexity.ai",3,1,33.33,0],["reviews.yandex.ru",3,3,33.33,0],["b24-t97j2d.bitrix24.ru",2,1,0,0],["chat.qwen.ai",2,2,50,0],["crm.tkcargo-lines.ru",2,1,0,0]],"total":["Итого",1880,576,10.27,2.5]},"pages":{"header":["Страница","Просмотры","Люди"],"rows":[["/search/",119940,2041],["/personal/cart/",41460,1180],["/auth/",26558,1740],["/",22223,3420],["/catalog/tovary_dlya_shkoly_i_ofisa/",9220,819],["/new/",9050,322],["/catalog/",7529,1456],["/catalog/tovary_dlya_shkoly_i_ofisa/ruchki_sterzhni/",4098,494]],"total":["Итого",558416,20722]},"internal":{"header":["startURLPath","Визиты","Люди"],"rows":[["/search/",2812,396],["/personal/cart/",1339,336],["/auth/",740,253],["/",557,113],["/new/",245,51]],"total":["Итого",9980,936]},"entry_org":{"header":["Страница входа","Визиты","Люди","Отказы, %"],"rows":[["https://shop.officesklad.example/",5474,1536,3.32],["https://shop.officesklad.example/personal/cart/",803,253,4.36],["https://shop.officesklad.example/catalog/",400,179,2.5],["https://shop.officesklad.example/brands/bg-russia/",355,332,18.59],["http://shop.officesklad.example/",225,57,0.89],["https://shop.officesklad.example/personal/",176,59,6.82],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/shkolnaya_kantselyariya_1/podstavki_dlya_knig/podstavka_dlya_knig_globus_pkm_chy",105,70,13.33],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/",92,49,3.26],["https://shop.officesklad.example/auth/?backurl=/",76,43,1.32],["https://shop.officesklad.example/auth/?register=yes&backurl=%2F",76,4,1.32],["https://shop.officesklad.example/brands/kokos_brand/?SECTION_ID=698",75,72,10.67],["https://shop.officesklad.example/brands/1toy/",71,67,18.31],["https://shop.officesklad.example/brands/devente/",60,55,20],["https://shop.officesklad.example/auth/?backurl=%2F",59,27,5.08],["https://shop.officesklad.example/prays-list/",58,43,18.97],["https://shop.officesklad.example/personal/order/",37,26,8.11],["https://shop.officesklad.example/brands/devente/?SECTION_ID=698",34,34,8.82],["https://shop.officesklad.example/brands/",28,13,0],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/bumazhno_belovye_izdeliya/bumaga_ofisnaya_belaya/sb_bumaga_snezhinka_80gr_a4_100",28,26,42.86],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/kalendari_1/kalendari_otryvnye/",26,14,3.85]],"total":["Итого",27730,10120,16.14]},"entry_all":{"header":["Страница входа","Визиты","Люди","Отказы, %"],"rows":[["https://shop.officesklad.example/",10356,2588,5.52],["https://shop.officesklad.example/personal/cart/",2710,524,4.54],["http://shop.officesklad.example/",905,570,47.4],["https://shop.officesklad.example/catalog/",800,323,4.75],["https://shop.officesklad.example/auth/?backurl=%2F",568,87,3.52],["https://shop.officesklad.example/personal/",485,142,4.74],["https://shop.officesklad.example/brands/bg-russia/",363,340,19.01],["https://shop.officesklad.example/auth/?backurl=/",306,136,6.54],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/",246,96,2.85],["https://shop.officesklad.example/auth/?register=yes&backurl=%2F",153,10,3.27],["https://shop.officesklad.example/search/?q=ежедневник&send=Y&r=Y&PAGEN_1=17",141,1,0],["https://shop.officesklad.example/catalog/tovary_dlya_shkoly_i_ofisa/shkolnaya_kantselyariya_1/podstavki_dlya_knig/podstavka_dlya_knig_globus_pkm_chy",139,96,17.99],["https://shop.officesklad.example/auth/?backurl=/personal/cart/",97,57,0],["https://shop.officesklad.example/new/",95,29,10.53],["http://shop.officesklad.example/catalog/",90,84,45.56],["https://shop.officesklad.example/prays-list/",87,51,19.54],["https://shop.officesklad.example/auth/?backurl=/catalog/",80,8,0],["https://shop.officesklad.example/personal/order/",79,46,8.86],["https://shop.officesklad.example/brands/kokos_brand/?SECTION_ID=698",77,74,10.39],["https://shop.officesklad.example/brands/1toy/",72,68,18.06]],"total":["Итого",56904,20722,24.87]},"phrases":{"header":["Поисковая фраза","Визиты"],"rows":[["офиссклад екатеринбург официальный сайт",2663],["офиссклад",966],["офиссклад екатеринбург каталог товаров",622],["офиссклад екатеринбург",339],["офиссклад",330],["офиссклад каталог",315],["офиссклад",252],["офиссклад",207],["брелок сувенирный пластик снежинка уп12/2400шт р2270-13",123],["198700 циркуль",110],["офиссклад",90],["4041485637134",88],["офиссклад екатеринбург официальный сайт каталог товаров",85],["shop.officesklad.example",76],["зао офиссклад екатеринбург каталог",75],["хат.пин 064520",64],["офиссклад екатеринбург каталог",63],["пенал-косметичка оникс пмп-17-20 \"спортивный\" (70415) ручка на карабине,ткань",62],["*пенал шк. тубус стамм пн-31461",61],["тт 21 шаблон",47],["http://www.shop.officesklad.example/",45],["4650056680044 в офиссклад",42],["офиссклад",42],["симбланк издат",41],["4606782642818",39],["арт 094648 комплект тетрадей",38],["4630082698503",37],["офиссклад",37],["\"календарь-домик настол. 2027г. хат делового человека \"\"золото.россия\"\" 36444 спир.,16*10,5см,бег.,1",35],["bg канцелярия",35]],"total":["Итого",17112]},"cart_entry":{"header":["Новый посетитель","Визиты","Люди","Новые люди"],"rows":[["Вернувшиеся посетители",3491,558,0],["Новые посетители",192,173,173]],"total":["Итого",3683,637,173]},"ai":{"header":["Сайт-источник","Визиты","Люди"],"rows":[["alice.yandex.ru",45,32],["chatgpt.com",8,6],["perplexity.ai",3,1],["chat.qwen.ai",2,2]],"total":["Итого",58,41]},"direct_browsers":{"header":["Браузер","Визиты","Отказы, %"],"rows":[["Google Chrome",12056,69.63],["Яндекс.Браузер",1539,3.7],["Edge",777,7.08],["Chrome Mobile",707,13.3],["Mobile Safari",537,24.02],["Firefox",510,4.71]],"total":["Итого",17172,52.07]},"anom_sep1":{"header":["Источник трафика","Визиты","Роботы, %"],"rows":[["Прямые заходы",1437,80.31],["Переходы из поисковых систем",790,0.13],["Внутренние переходы",266,0],["Переходы по ссылкам на сайтах",62,1.61]],"total":["Итого",2555,45.24]},"anom_oct1":{"header":["Источник трафика","Визиты","Роботы, %"],"rows":[["Прямые заходы",941,80.23],["Переходы из поисковых систем",766,0],["Внутренние переходы",160,0],["Переходы по ссылкам на сайтах",31,6.45],["Переходы из социальных сетей",4,0]],"total":["Итого",1902,39.8]},"anom_sep17":{"header":["Источник трафика","Визиты","Роботы, %"],"rows":[["Прямые заходы",2639,86.85],["Переходы из поисковых систем",1005,0.1],["Внутренние переходы",295,0],["Переходы по ссылкам на сайтах",64,9.38]],"total":["Итого",4003,57.43]},"anom_cities":{"header":["Город","Визиты","Роботы, %"],"rows":[["Екатеринбург",459,0.22],["Сингапур",223,100],["Барнаул",86,0],["Москва",73,15.07],["Красноярск",61,0]],"total":["Итого",1634,14.57]},"anom_entry":{"header":["Страница входа","Визиты","Роботы, %"],"rows":[["https://shop.officesklad.example/",289,0],["https://shop.officesklad.example/personal/cart/",99,0],["https://shop.officesklad.example/catalog/",34,2.94],["http://shop.officesklad.example/",31,32.26],["https://shop.officesklad.example/personal/",30,0]],"total":["Итого",4006,57.39]},"src_month":[{"m":7,"src":"Внутренние переходы","v":1308},{"m":7,"src":"Прямые заходы","v":1390},{"m":7,"src":"Переходы по ссылкам на сайтах","v":189},{"m":7,"src":"Переходы из поисковых систем","v":2501},{"m":7,"src":"","v":10},{"m":7,"src":"Переходы из социальных сетей","v":6},{"m":8,"src":"Внутренние переходы","v":3444},{"m":8,"src":"Прямые заходы","v":4809},{"m":8,"src":"Переходы по ссылкам на сайтах","v":784},{"m":8,"src":"Переходы из поисковых систем","v":10117},{"m":8,"src":"","v":33},{"m":8,"src":"Переходы из социальных сетей","v":12},{"m":9,"src":"Внутренние переходы","v":2951},{"m":9,"src":"Прямые заходы","v":7420},{"m":9,"src":"Переходы по ссылкам на сайтах","v":617},{"m":9,"src":"Переходы из поисковых систем","v":9710},{"m":9,"src":"","v":24},{"m":9,"src":"Переходы из социальных сетей","v":15},{"m":10,"src":"Внутренние переходы","v":2425},{"m":10,"src":"Прямые заходы","v":3759},{"m":10,"src":"Переходы по ссылкам на сайтах","v":307},{"m":10,"src":"Переходы из поисковых систем","v":5745},{"m":10,"src":"","v":17},{"m":10,"src":"Переходы из социальных сетей","v":9}],"goals":[{"id":"587476749","name":"Автоцель: отправка формы","type":"form","n":80405},{"id":"587476750","name":"Автоцель: поиск по сайту","type":"search","n":121240},{"id":"587527615","name":"Автоцель: скачивание файла","type":"file","n":134},{"id":"587558044","name":"Автоцель: заполнил контактные данные","type":"contact_data","n":6948},{"id":"587558045","name":"Автоцель: отправил контактные данные","type":"contact_data_sent","n":6703},{"id":"590982343","name":"Автоцель: клик по email","type":"email","n":32},{"id":"596839899","name":"Автоцель: переход в соц.сеть","type":"social","n":1},{"id":"597837429","name":"Показ слайда Hatber","type":"action","n":8300},{"id":"602942858","name":"Показ слайда Луч Под","type":"action","n":12200},{"id":"603156046","name":"Автоцель: клик по номеру телефона","type":"phone","n":3}],"M":{"visits":56904,"people":20722,"views":558546,"bounce":24.87,"depth":9.82,"dur":653.7,"robot_pct":11.7,"robot_visits":6658,"clean_visits":50246,"bounces":14152,"bounce_adj":14.9,"robots_by_source":{"Переходы из поисковых систем":86,"Прямые заходы":6511,"Внутренние переходы":11,"Переходы по ссылкам на сайтах":47,"Переходы из социальных сетей":0},"robots_direct_share":97.8,"ret_visits":35323,"ret_people":3578,"ret_visit_share":62.1,"ret_people_share":17.3,"ret_visits_per_person":9.9,"new_visits_per_person":1.04,"ret_people_share_if_no_robots_lowerbound":25.4,"people_if_no_robots":14064,"dev_share_visits":{"ПК":85.1,"Смартфоны":14.6,"Планшеты":0.3,"ТВ":0.0},"dev_share_people":{"ПК":76.7,"Смартфоны":22.9,"Планшеты":0.3,"ТВ":0.0},"dev_vpp":{"ПК":3.05,"Смартфоны":1.74,"Планшеты":2.59,"ТВ":1.0},"src_share":{"Переходы из поисковых систем":48.8,"Прямые заходы":30.3,"Внутренние переходы":17.6,"Переходы по ссылкам на сайтах":3.3,"Переходы из социальных сетей":0.1},"src_vpp":{"Переходы из поисковых систем":2.74,"Прямые заходы":1.71,"Внутренние переходы":10.66,"Переходы по ссылкам на сайтах":3.26,"Переходы из социальных сетей":5.25},"src_visits_no_source":83,"engine_ya":18842,"engine_go":8705,"engine_ya_share":67.9,"engine_go_share":31.4,"engine_other":183,"engine_img_cam":225,"reg_vpp":{"Свердловская область":8.9,"Не определено":1.3,"Алтайский край":11.9,"Кемеровская область (Кузбасс)":10.6,"Москва и Московская область":1.3,"Красноярский край":5.7,"Область не определена":1.1,"Республика Саха (Якутия)":4.9,"Иркутская область":5.6,"Республика Бурятия":11.6},"reg_share":{"Свердловская область":28.9,"Не определено":12.9,"Алтайский край":7.0,"Кемеровская область (Кузбасс)":6.3,"Москва и Московская область":5.6,"Красноярский край":4.2,"Область не определена":2.8,"Республика Саха (Якутия)":2.1,"Иркутская область":2.1,"Республика Бурятия":2.0},"east_visits":29908,"east_people":3496,"east_visit_share":52.6,"east_people_share":16.9,"east_vpp":8.6,"undef_visits":8923,"undef_people":7227,"undef_visit_share":15.7,"undef_people_share":34.9,"undef_bounce":75.4,"moscow_vpp":1.29,"moscow_people_share":11.9,"city_vpp":{"Екатеринбург":8.8,"Барнаул":11.2,"Москва":1.3,"Красноярск":5.0,"Кемерово":10.3,"Улан-Удэ":11.2,"Сингапур":1.0,"Санкт-Петербург":1.2,"Томск":5.1,"Якутск":3.1},"city_share":{"Екатеринбург":24.8,"Барнаул":5.0,"Москва":3.5,"Красноярск":2.9,"Кемерово":2.1,"Улан-Удэ":1.7,"Сингапур":1.4,"Санкт-Петербург":1.4,"Томск":1.1,"Якутск":1.0},"page_view_share":{"/search/":21.5,"/personal/cart/":7.4,"/auth/":4.8,"/":4.0,"/catalog/tovary_dlya_shkoly_i_ofisa/":1.7,"/new/":1.6,"/catalog/":1.3,"/catalog/tovary_dlya_shkoly_i_ofisa/ruchki_sterzhni/":0.7},"page_vpp":{"/search/":58.8,"/personal/cart/":35.1,"/auth/":15.3,"/":6.5,"/catalog/tovary_dlya_shkoly_i_ofisa/":11.3,"/new/":28.1,"/catalog/":5.2,"/catalog/tovary_dlya_shkoly_i_ofisa/ruchki_sterzhni/":8.3},"page_people_share":{"/search/":9.8,"/personal/cart/":5.7,"/auth/":8.4,"/":16.5,"/catalog/tovary_dlya_shkoly_i_ofisa/":4.0,"/new/":1.6,"/catalog/":7.0,"/catalog/tovary_dlya_shkoly_i_ofisa/ruchki_sterzhni/":2.4},"top8_view_share":43.0,"search_per_visit":2.13,"search_per_person":5.9,"form_per_visit":1.41,"contact_sent_vs_filled":96.5,"ph_top_sum":7029,"ph_total_known":17112,"ph_brand_sum":6207,"ph_nonbrand_sum":822,"ph_brand_share_of_known":36.3,"ph_tail":10083,"ph_tail_phrases":7832,"ph_hidden":10618,"ph_hidden_share":38.3,"ph_brand_list":[["офиссклад екатеринбург официальный сайт",2663],["офиссклад",966],["офиссклад екатеринбург каталог товаров",622],["офиссклад екатеринбург",339],["офиссклад",330],["офиссклад каталог",315],["офиссклад",252],["офиссклад",207],["офиссклад",90],["офиссклад екатеринбург официальный сайт каталог товаров",85],["shop.officesklad.example",76],["зао офиссклад екатеринбург каталог",75],["офиссклад екатеринбург каталог",63],["http://www.shop.officesklad.example/",45],["офиссклад",42],["офиссклад",37]],"ph_nonbrand_list":[["брелок сувенирный пластик снежинка уп12/2400шт р2270-13",123],["198700 циркуль",110],["4041485637134",88],["хат.пин 064520",64],["пенал-косметичка оникс пмп-17-20 \"спортивный\" (70415) ручка на карабине,ткань",62],["*пенал шк. тубус стамм пн-31461",61],["тт 21 шаблон",47],["4650056680044 в офиссклад",42],["симбланк издат",41],["4606782642818",39],["арт 094648 комплект тетрадей",38],["4630082698503",37],["\"календарь-домик настол. 2027г. хат делового человека \"\"золото.россия\"\" 36444 спир.,16*10,5см,бег.,1",35],["bg канцелярия",35]],"ph_barcode_sum":206,"org_service_entries":1227,"org_service_share":4.4,"org_service_list":[["/personal/cart/",803],["/personal/",176],["/auth/?backurl=/",76],["/auth/?register=yes&backurl=%2F",76],["/auth/?backurl=%2F",59],["/personal/order/",37]],"org_brand_entries":595,"org_brand_people":560,"org_root_share":19.7,"http_entries":995,"auth_entries":1204,"auth_register_visits":153,"auth_register_people":10,"ea_root_share":18.2,"cart_entry_visits":3683,"cart_entry_people":637,"cart_entry_share":6.5,"cart_entry_vpp":5.8,"internal_search_vpp":7.1,"ref_vpp":{"ntp.msn.com":23.2,"link.2gis.ru":1.7,"24-ok.ru":6.9,"saleykt.ru":2.7,"e.mail.ru":9.6,"samson.team":2.6,"alice.yandex.ru":1.4,"spshka.ru":2.1,"iframe-yang.yandex":1.1,"android-app":2.1,"pasman.bitrix24.ru":5.3,"iframe-tasks.yandex":1.0,"metrika.yandex.ru":3.3,"chatgpt.com":1.3,"mail.rambler.ru":3.5,"aocr.org":1.0,"kwork.ru":3.0,"ibta.ru":2.0,"officesklad.example":2.0,"cloudparser.ru":1.5,"perplexity.ai":3.0,"reviews.yandex.ru":1.0,"b24-t97j2d.bitrix24.ru":2.0,"chat.qwen.ai":1.0,"crm.tkcargo-lines.ru":2.0},"mon_robot_visits":{"7":191,"8":748,"9":4291,"10":1427},"mon_visits_daily":{"7":5398,"8":19199,"9":20737,"10":11570},"mon_days":{"7":10,"8":31,"9":30,"10":20},"mon_clean_per_day":{"7":521,"8":595,"9":548,"10":507},"mon_raw_per_day":{"7":540,"8":619,"9":691,"10":578},"wd_avg_clean":[662,688,685,666,612,286,267],"weekday_avg":663,"weekend_avg":276,"weekday_weekend_ratio":2.4,"anom":{"sep1":[1156,2557],"sep17":[2299,4006],"oct1":[757,1905],"oct4":[151,380]},"anom_robots_total":4363,"anom_robots_share_of_all":65.5,"thu_fri_median_clean":610.5,"aug_peak_clean":[968,1032],"aug_peak_uplift_pct":64,"aug_peak_people":[834,841],"sep17_people":3366,"sep17_base_people":1237,"sep17_excess_people":2129,"sep17_robot_visits":2299,"sep17_people_per_robot_visit":0.93,"src_month":{"7":{"Внутренние переходы":1308,"Прямые заходы":1390,"Переходы по ссылкам на сайтах":189,"Переходы из поисковых систем":2501,"(не определён)":10,"Переходы из социальных сетей":6},"8":{"Внутренние переходы":3444,"Прямые заходы":4809,"Переходы по ссылкам на сайтах":784,"Переходы из поисковых систем":10117,"(не определён)":33,"Переходы из социальных сетей":12},"9":{"Внутренние переходы":2951,"Прямые заходы":7420,"Переходы по ссылкам на сайтах":617,"Переходы из поисковых систем":9710,"(не определён)":24,"Переходы из социальных сетей":15},"10":{"Внутренние переходы":2425,"Прямые заходы":3759,"Переходы по ссылкам на сайтах":307,"Переходы из поисковых систем":5745,"(не определён)":17,"Переходы из социальных сетей":9}},"direct_sep_minus_aug":2611,"sep_robot_visits":4291,"aug_robot_visits":748,"oct_robot_visits":1427,"reach":{"Главная /":[3420,16.5],"Поиск /search/":[2041,9.8],"Каталог /catalog/":[1456,7.0],"Вход /auth/":[1740,8.4],"Корзина":[1180,5.7],"Новинки /new/":[322,1.6]},"ph_nonbrand_typed":[["брелок сувенирный пластик снежинка уп12/2400шт р2270-13",123,"Название «как в прайсе»"],["198700 циркуль",110,"Артикул / код"],["4041485637134",88,"Штрихкод"],["хат.пин 064520",64,"Артикул / код"],["пенал-косметичка оникс пмп-17-20 \"спортивный\" (70415) ручка на карабине,ткань",62,"Название «как в прайсе»"],["*пенал шк. тубус стамм пн-31461",61,"Название «как в прайсе»"],["тт 21 шаблон",47,"Артикул / код"],["4650056680044 в офиссклад",42,"Штрихкод"],["симбланк издат",41,"Название «как в прайсе»"],["4606782642818",39,"Штрихкод"],["арт 094648 комплект тетрадей",38,"Артикул / код"],["4630082698503",37,"Штрихкод"],["\"календарь-домик настол. 2027г. хат делового человека \"\"золото.россия\"\" 36444 спир.,16*10,5см,бег.,1",35,"Название «как в прайсе»"],["bg канцелярия",35,"Категория + бренд поставщика"]],"ph_type_sums":{"Название «как в прайсе»":322,"Артикул / код":259,"Штрихкод":206,"Категория + бренд поставщика":35},"ph_brand_share_of_top":88.3,"srcm":{"7":{"days":10,"search":250,"direct_clean":120,"robots":19,"internal":131,"other":20,"totals":{"search":2501,"direct":1390,"robots":191,"internal":1308,"other":205}},"8":{"days":31,"search":326,"direct_clean":131,"robots":24,"internal":111,"other":27,"totals":{"search":10117,"direct":4809,"robots":748,"internal":3444,"other":829}},"9":{"days":30,"search":324,"direct_clean":104,"robots":143,"internal":98,"other":22,"totals":{"search":9710,"direct":7420,"robots":4291,"internal":2951,"other":656}},"10":{"days":21,"search":274,"direct_clean":110,"robots":69,"internal":115,"other":16,"totals":{"search":5745,"direct":3759,"robots":1458,"internal":2425,"other":333}}},"monthm":{"7":{"days":10,"visits":5404,"robots":191,"clean_pd":521,"robots_pd":19,"raw_pd":540,"robot_share":3.5},"8":{"days":31,"visits":19199,"robots":748,"clean_pd":595,"robots_pd":24,"raw_pd":619,"robot_share":3.9},"9":{"days":30,"visits":20737,"robots":4291,"clean_pd":548,"robots_pd":143,"raw_pd":691,"robot_share":20.7},"10":{"days":21,"visits":12262,"robots":1458,"clean_pd":514,"robots_pd":69,"raw_pd":584,"robot_share":11.9}}}};
+</script>
+<script>
+'use strict';
+/* ---------- formatting ---------- */
+const NBSP = ' ';
+const NS = 'http://www.w3.org/2000/svg';
+const nf0 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const fmt = (n) => nf0.format(Math.round(n));
+const fmtD = (n, d = 1) => new Intl.NumberFormat('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+const pct = (n, d = 1) => fmtD(n, d) + NBSP + '%';
+const approx = (n, step = 10) => '≈' + fmt(Math.round(n / step) * step);
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const MON_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const MON_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const dateRu = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MON_GEN[m - 1]}`;
+};
+const dateShort = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MON_SHORT[m - 1]}`;
+};
+
+/* ---------- DOM helpers (all text goes through text nodes) ---------- */
+function appendKids(el, kids) {
+  for (const k of kids.flat(Infinity)) {
+    if (k == null || k === false) continue;
+    el.append(k.nodeType ? k : document.createTextNode(String(k)));
+  }
+}
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+  }
+  appendKids(el, kids);
+  return el;
+}
+function sv(tag, attrs, ...kids) {
+  const el = document.createElementNS(NS, tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else el.setAttribute(k, v);
+    }
+  }
+  appendKids(el, kids);
+  return el;
+}
+/* **bold** -> <strong>, everything else is plain text */
+function rich(str) {
+  return String(str).split('**').map((p, i) => (i % 2 ? h('strong', null, p) : p));
+}
+const $ = (sel, root = document) => root.querySelector(sel);
+
+/* ---------- tooltip ---------- */
+const tipEl = () => document.getElementById('tip');
+function showTip(pos, data) {
+  const tip = tipEl();
+  tip.replaceChildren();
+  if (data.title) tip.append(h('div', { class: 't' }, data.title));
+  for (const r of data.rows || []) {
+    tip.append(
+      h('div', { class: 'r' },
+        h('span', { class: 'k', style: r.color ? { background: r.color, height: '2px' } : { background: 'transparent' } }),
+        h('span', { class: 'v' }, r.value),
+        h('span', { class: 'n' }, r.label)
+      )
+    );
+  }
+  tip.style.display = 'block';
+  const pad = 14;
+  const w = tip.offsetWidth, hh = tip.offsetHeight;
+  let x = pos.clientX + pad, y = pos.clientY + pad;
+  if (x + w > window.innerWidth - 8) x = pos.clientX - w - pad;
+  if (x < 8) x = 8;
+  if (y + hh > window.innerHeight - 8) y = pos.clientY - hh - pad;
+  if (y < 8) y = 8;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideTip() { tipEl().style.display = 'none'; }
+function bindTip(el, getData) {
+  el.addEventListener('pointermove', (e) => showTip(e, getData()));
+  el.addEventListener('pointerleave', hideTip);
+  el.addEventListener('focus', () => {
+    const r = el.getBoundingClientRect();
+    showTip({ clientX: r.left + Math.min(r.width / 2, 200), clientY: r.top }, getData());
+  });
+  el.addEventListener('blur', hideTip);
+}
+
+/* ---------- legend / card / tables ---------- */
+function legend(items) {
+  return h('div', { class: 'legend' }, items.map((i) => h('span', null, h('i', { style: { background: i.color } }), i.name)));
+}
+function tableEl(head, rows, numCols = []) {
+  const t = h('table', { class: 'tbl' });
+  t.append(h('thead', null, h('tr', null, head.map((c, i) => h('th', { class: numCols.includes(i) ? 'num' : '' }, c)))));
+  t.append(h('tbody', null, rows.map((r) => h('tr', null, r.map((c, i) => h('td', { class: numCols.includes(i) ? 'num' : '' }, c))))));
+  return t;
+}
+function card(o) {
+  const el = h('section', { class: 'card ' + (o.cls || 'c12') });
+  const titleBox = h('div', null, h('h3', null, o.title), o.sub ? h('p', { class: 'sub' }, rich(o.sub)) : null);
+  const head = h('div', { class: 'card-h' }, titleBox);
+  const chartBox = h('div', { class: 'card-b' });
+  if (o.legend) chartBox.append(legend(o.legend));
+  appendKids(chartBox, [o.body]);
+  el.append(head, chartBox);
+  if (o.table) {
+    const tbox = h('div', { class: 'card-b tbl-wrap', hidden: true }, tableEl(o.table.head, o.table.rows, o.table.num || []));
+    const bChart = h('button', { type: 'button', 'aria-pressed': 'true' }, 'График');
+    const bTable = h('button', { type: 'button', 'aria-pressed': 'false' }, 'Таблица');
+    const set = (showTable) => {
+      chartBox.hidden = showTable;
+      tbox.hidden = !showTable;
+      bChart.setAttribute('aria-pressed', String(!showTable));
+      bTable.setAttribute('aria-pressed', String(showTable));
+      hideTip();
+    };
+    bChart.addEventListener('click', () => set(false));
+    bTable.addEventListener('click', () => set(true));
+    head.append(h('div', { class: 'seg', role: 'group', 'aria-label': 'Вид' }, bChart, bTable));
+    el.append(tbox);
+  }
+  if (o.foot) el.append(h('p', { class: 'foot' }, rich(o.foot)));
+  if (o.note) el.append(h('div', { class: 'note ' + (o.noteTone || '') }, rich(o.note)));
+  return el;
+}
+
+/* ---------- horizontal bar table (HTML, accessible) ---------- */
+function barTable(o) {
+  const tpl = `minmax(150px,1.2fr) minmax(110px,1.6fr) ${o.cols.map((c) => c.w || '72px').join(' ')}`;
+  const wrap = h('div', { class: 'bt' });
+  wrap.style.setProperty('--tpl', tpl);
+  wrap.style.minWidth = (300 + o.cols.reduce((a, c) => a + parseInt(c.w || '72', 10), 0) + (o.cols.length + 2) * 10) + 'px';
+  wrap.append(
+    h('div', { class: 'bt-row bt-head' }, h('div', null, o.labelHead || ''), h('div', null, o.barHead || ''), o.cols.map((c) => h('div', { class: 'bt-c' }, c.h)))
+  );
+  const mx = o.max || Math.max(...o.rows.map((r) => sum(r.segs.map((s) => s.v))));
+  for (const r of o.rows) {
+    const total = sum(r.segs.map((s) => s.v));
+    const fill = h('div', { class: 'bt-fill', style: { width: Math.max(0.4, (total / mx) * 100) + '%' } },
+      r.segs.filter((s) => s.v > 0).map((s) => h('i', { style: { flex: `${s.v} 1 0`, background: s.color } })));
+    const label = h('div', { class: 'bt-l', title: r.full || null }, r.label, r.tag ? h('span', { class: 'tag ' + (r.tagTone || '') }, r.tag) : null, r.sub ? h('small', null, r.sub) : null);
+    const row = h('div', { class: 'bt-row', tabindex: '0' }, label, h('div', { class: 'bt-bar' }, fill), r.cells.map((c, i) => h('div', { class: 'bt-c', 'data-l': o.cols[i].h }, c)));
+    bindTip(row, () => ({
+      title: r.full || r.label,
+      rows: [
+        ...r.segs.filter((s) => s.v > 0).map((s) => ({ color: s.color, label: s.name || '', value: fmt(s.v) })),
+        ...o.cols.map((c, i) => ({ label: c.h, value: r.cells[i] })),
+        ...(r.extra || []),
+      ],
+    }));
+    wrap.append(row);
+  }
+  return h('div', { class: 'scroll-x' }, wrap);
+}
+function barTableData(o) {
+  return {
+    head: [o.labelHead || '', ...o.cols.map((c) => c.h)],
+    rows: o.rows.map((r) => [r.full || r.label, ...r.cells]),
+    num: o.cols.map((_, i) => i + 1),
+  };
+}
+
+/* 100% stacked horizontal bar with in-bar labels when they fit */
+function hstack(label, segs) {
+  const total = sum(segs.map((s) => s.v));
+  const bar = h('div', { class: 'hs-bar' },
+    segs.map((s) => {
+      const seg = h('div', { class: 'hs-seg', style: { flex: `${s.v} 1 0`, background: s.color } }, s.v / total > 0.14 ? h('span', null, s.text) : null);
+      bindTip(seg, () => ({ title: label, rows: [{ color: s.color, label: s.name, value: s.text + ' · ' + fmt(s.v) }] }));
+      seg.tabIndex = 0;
+      return seg;
+    }));
+  return h('div', { class: 'hs' }, h('div', { class: 'hs-l' }, label), bar);
+}
+
+/* ---------- SVG column chart (single or stacked) ---------- */
+function barPath(x, y, w, hgt, r) {
+  r = Math.max(0, Math.min(r, w / 2, hgt));
+  if (r === 0) return `M${x},${y}h${w}v${hgt}h${-w}Z`;
+  return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`;
+}
+function columnChart(o) {
+  const W = o.w, H = o.h, ml = o.ml ?? 38, mr = o.mr ?? 8, mt = o.mt ?? 14, mb = o.mb ?? 26;
+  const n = o.cats.length, pw = W - ml - mr, ph = H - mt - mb, band = pw / n;
+  const bw = Math.min(o.bw ?? 24, band * 0.72);
+  const tot = (i) => sum(o.series.map((s) => s.vals[i] || 0));
+  const yMax = o.yMax;
+  const y = (v) => mt + ph - (v / yMax) * ph;
+  const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': o.aria || '', tabindex: '0' });
+  if (o.minw) svg.style.minWidth = o.minw + 'px';
+  // grid + y labels
+  for (const t of o.ticks) {
+    svg.append(sv('line', { x1: ml, x2: W - mr, y1: y(t), y2: y(t), style: { stroke: t === 0 ? 'var(--axis)' : 'var(--grid)', strokeWidth: 1 } }));
+    svg.append(sv('text', { x: ml - 6, y: y(t) + 4, 'text-anchor': 'end' }, fmt(t)));
+  }
+  // bands behind the bars
+  for (const b of o.bands || []) {
+    const x0 = ml + b.from * band, w0 = (b.to - b.from + 1) * band;
+    svg.append(sv('rect', { x: x0, y: mt, width: w0, height: ph, style: { fill: b.tone === 'warn' ? 'var(--warn-wash)' : 'var(--info-wash)' } }));
+    svg.append(sv('text', { x: x0 + w0 / 2, y: mt - 7, 'text-anchor': 'middle', class: 'band' }, b.label));
+  }
+  const hl = sv('rect', { y: mt, height: ph, width: band, style: { fill: 'var(--wash)', display: 'none' } });
+  const cross = sv('line', { y1: mt, y2: mt + ph, style: { stroke: 'var(--axis)', strokeWidth: 1, display: 'none' } });
+  svg.append(hl);
+  // bars
+  for (let i = 0; i < n; i++) {
+    const cx = ml + i * band + band / 2;
+    let cum = 0;
+    const nz = o.series.map((s) => (s.vals[i] || 0) > 0);
+    const topIdx = nz.lastIndexOf(true);
+    const firstIdx = nz.indexOf(true);
+    o.series.forEach((s, j) => {
+      const v = s.vals[i] || 0;
+      if (v <= 0) return;
+      const yTop = y(cum + v), yBot = y(cum);
+      const gap = j === firstIdx ? 0 : 2;
+      const hgt = Math.max(1, yBot - yTop - gap);
+      svg.append(sv('path', { d: barPath(cx - bw / 2, yTop, bw, hgt, j === topIdx ? 4 : 0), style: { fill: s.color } }));
+      cum += v;
+    });
+    const lab = o.labels ? o.labels(i) : null;
+    if (lab) svg.append(sv('text', { x: cx, y: y(tot(i)) - 6, 'text-anchor': 'middle', class: 'val' }, lab));
+  }
+  // x labels
+  for (let i = 0; i < n; i++) {
+    const t = o.xTick(i);
+    if (!t) continue;
+    const cx = ml + i * band + band / 2;
+    const anchor = i === 0 && o.edgeAnchors ? 'start' : i === n - 1 && o.edgeAnchors ? 'end' : 'middle';
+    const x = anchor === 'start' ? ml : anchor === 'end' ? W - mr : cx;
+    svg.append(sv('text', { x, y: H - 8, 'text-anchor': anchor }, t));
+  }
+  svg.append(cross);
+  // interaction layer
+  let cur = -1;
+  const activate = (i, pos) => {
+    cur = i;
+    hl.setAttribute('x', ml + i * band);
+    hl.style.display = '';
+    const cx = ml + i * band + band / 2;
+    cross.setAttribute('x1', cx); cross.setAttribute('x2', cx);
+    cross.style.display = o.crosshair === false ? 'none' : '';
+    showTip(pos, { title: o.tipTitle(i), rows: o.tipRows(i) });
+  };
+  const deactivate = () => { hl.style.display = 'none'; cross.style.display = 'none'; hideTip(); };
+  for (let i = 0; i < n; i++) {
+    const r = sv('rect', { x: ml + i * band, y: mt - 4, width: band, height: ph + 4, style: { fill: 'transparent' } });
+    r.addEventListener('pointermove', (e) => activate(i, e));
+    svg.append(r);
+  }
+  svg.addEventListener('pointerleave', deactivate);
+  const posOf = (i) => {
+    const r = svg.getBoundingClientRect();
+    return { clientX: r.left + ((ml + i * band + band / 2) / W) * r.width, clientY: r.top + r.height * 0.15 };
+  };
+  svg.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = cur < 0 ? 0 : Math.min(n - 1, Math.max(0, cur + (e.key === 'ArrowRight' ? 1 : -1)));
+    activate(next, posOf(next));
+  });
+  svg.addEventListener('focus', () => activate(cur < 0 ? 0 : cur, posOf(cur < 0 ? 0 : cur)));
+  svg.addEventListener('blur', deactivate);
+  return svg;
+}
+
+'use strict';
+const M = D.M;
+const V = M.visits, P = M.people;
+const C1 = 'var(--s1)', C2 = 'var(--s2)', C3 = 'var(--s3)', CN = 'var(--neutral)';
+const byName = (rows, name) => rows.find((r) => r[0] === name);
+const MM = M.monthm; // keys: 7..10
+const mount = (id) => document.getElementById(id);
+const srcTot = D.sources.total[1];
+
+/* ===== derived values reused across sections ===== */
+const robotsByName = {};
+D.sources.rows.forEach((r) => { robotsByName[r[0]] = Math.round((r[1] * r[4]) / 100); });
+const directClean = byName(D.sources.rows, 'Прямые заходы')[1] - robotsByName['Прямые заходы'];
+const srcClean = srcTot - sum(Object.values(robotsByName));
+const directCleanShare = (directClean / srcClean) * 100;
+const searchRow = byName(D.sources.rows, 'Переходы из поисковых систем');
+const searchPerDay = (m) => M.srcm[m].search;
+const cartPV = byName(D.pages.rows, '/personal/cart/');
+const searchPV = byName(D.pages.rows, '/search/');
+const authPV = byName(D.pages.rows, '/auth/');
+const goal = (type) => D.goals.find((g) => g.type === type).n;
+const GOAL_SEARCH = goal('search'), GOAL_FORM = goal('form');
+const retRow = byName(D.newret.rows, 'Вернувшиеся посетители');
+const newRow = byName(D.newret.rows, 'Новые посетители');
+const ekb = byName(D.cities.rows, 'Екатеринбург');
+const DAYS = D.days.length;
+
+/* ===== entry page classification (shared) ===== */
+const entLegend = [{ name: 'Контентные страницы', color: C1 }, { name: 'Служебные и http-версия', color: C2 }];
+function entryInfo(u) {
+  const p = u.replace(/^https?:\/\/shop\.officesklad\.example/, '') || '/';
+  const http = u.startsWith('http://');
+  let type = 'Каталог', service = false;
+  if (p === '/') type = 'Главная';
+  else if (p.startsWith('/personal/cart')) { type = 'Корзина'; service = true; }
+  else if (p.startsWith('/personal/order')) { type = 'Оформление'; service = true; }
+  else if (p.startsWith('/personal')) { type = 'Личный кабинет'; service = true; }
+  else if (p.startsWith('/auth')) { type = 'Вход, регистрация'; service = true; }
+  else if (p.startsWith('/search')) { type = 'Поиск с параметрами'; service = true; }
+  else if (p.startsWith('/brands/')) type = p === '/brands/' ? 'Бренды' : 'Бренд';
+  else if (p.startsWith('/prays-list')) type = 'Прайс-лист';
+  else if (p.startsWith('/new')) type = 'Новинки';
+  else if (p.startsWith('/catalog/') && !p.endsWith('/')) type = 'Товар';
+  const short = p.length > 58 ? p.slice(0, 26) + '…' + p.slice(-26) : p;
+  return { p, short, http, type, service };
+}
+
+/* ===== hero ===== */
+mount('hero-mount').append(
+  h('div', null,
+    h('div', { class: 'hero-fig' }, fmtD(M.ret_visit_share, 0), h('small', null, '%')),
+    h('p', { class: 'hero-cap' }, rich(`всех визитов делают **${fmt(M.ret_people)} вернувшихся клиентов** — это ${pct(M.ret_people_share, 0)} посетителей. Остальные ${pct(100 - M.ret_people_share, 0)} заходят один раз.`))
+  ),
+  h('div', { class: 'readme' },
+    h('h3', null, 'Как читать отчёт'),
+    h('ul', null,
+      h('li', null, 'В выгрузке нет заказов и сумм: электронная коммерция выключена. Конверсию в деньгах посчитать нельзя — разбираем поведение и качество данных.'),
+      h('li', null, rich('Расчёты с допущением помечены ', ), h('span', { class: 'chip-est' }, 'оценка'), ' — допущения собраны в разделе 12.'),
+      h('li', null, 'Графики можно навести курсором или переключить на «Таблицу». Кнопка «Тема» меняет светлое и тёмное оформление.')
+    )
+  )
+);
+
+/* ===== key moments ===== */
+const KM = [
+  {
+    t: 'Магазин — рабочий инструмент постоянных клиентов',
+    b: `**${fmt(M.ret_people)} вернувшихся** (${pct(M.ret_people_share)} людей) дают ${pct(M.ret_visit_share, 0)} визитов: ${fmtD(M.ret_visits_per_person)} визита на человека, отказы ${pct(retRow[3])}. Новые заходят в среднем ${fmtD(M.new_visits_per_person, 2)} раза, отказы ${pct(newRow[3], 0)}.`,
+  },
+  {
+    t: 'Главное действие — поиск, корзина — рабочий список',
+    b: `**${fmt(GOAL_SEARCH)} поисков** (${fmtD(M.search_per_visit)} на визит), страница поиска — ${pct(M.page_view_share['/search/'])} всех просмотров. В корзине ${fmtD(M.page_vpp['/personal/cart/'], 0)} просмотров на человека; ${fmt(M.cart_entry_visits)} визитов (${pct(M.cart_entry_share)}) начинаются сразу с неё.`,
+  },
+  {
+    t: 'География: Урал, Сибирь, Дальний Восток',
+    b: `Семь регионов дают **${pct(M.east_visit_share)} визитов** от ${pct(M.east_people_share)} людей (${fmtD(M.east_vpp)} визита на человека). Один Екатеринбург — ${pct(M.city_share['Екатеринбург'])}. Москва и Петербург — по ≈1,2–1,3 визита на человека.`,
+  },
+  {
+    t: 'Роботы искажают данные',
+    b: `**${pct(M.robot_pct)} визитов** (${approx(M.robot_visits)}) — роботы, ${pct(M.robots_direct_share, 0)} из них — в «прямых». Доля выросла с ${pct(MM[8].robot_share)} в августе до ${pct(MM[9].robot_share)} в сентябре. Отказы: ${pct(M.bounce)} → ≈${pct(M.bounce_adj)} без роботов (оценка).`,
+  },
+  {
+    t: 'Конверсию посчитать нельзя',
+    b: `Электронная коммерция выключена. Автоцель «отправка формы» (${fmt(GOAL_FORM)}) смешивает поиск, вход и заказ. Клики по телефону — **${goal('phone')} за ${DAYS} день**, по e-mail — ${goal('email')}.`,
+  },
+  {
+    t: 'Привлечение держится на поиске и бренде',
+    b: `Поиск — ${pct(M.src_share['Переходы из поисковых систем'])} визитов (Яндекс ${pct(M.engine_ya_share, 0)}, Google ${pct(M.engine_go_share, 0)}). Бренд — не менее ${pct(M.ph_brand_share_of_known, 0)} известных запросов. Рекламы и рассылок в данных нет, соцсети — ${fmt(byName(D.sources.rows, 'Переходы из социальных сетей')[1])} визита.`,
+  },
+];
+mount('km-mount').append(...KM.map((k, i) => h('article', { class: 'km' }, h('div', { class: 'n' }, String(i + 1).padStart(2, '0')), h('h3', null, k.t), h('p', null, rich(k.b)))));
+
+/* ===== KPI tiles ===== */
+const tile = (l, v, s) => h('div', { class: 'tile' }, h('div', { class: 'l' }, l), h('div', { class: 'v' }, v), h('div', { class: 's' }, s));
+const mmss = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+const est = () => h('span', { class: 'chip-est' }, 'оценка');
+mount('kpi-mount').append(
+  tile('Визиты', fmt(V), [`${approx(M.clean_visits)} без роботов `, est()]),
+  tile('Люди', fmt(P), [`≈${fmt(Math.round(M.people_if_no_robots / 10) * 10)} без роботов `, est()]),
+  tile('Просмотры', fmt(M.views), `Глубина ${fmtD(M.depth, 2)} стр. на визит`),
+  tile('Длительность визита', mmss(M.dur), `${fmtD(M.dur)} с`),
+  tile('Отказы', pct(M.bounce, 2), [`≈${pct(M.bounce_adj)} без роботов `, est()]),
+  tile('Роботы', pct(M.robot_pct), `${approx(M.robot_visits)} визитов; ${pct(M.robots_direct_share, 0)} — в «прямых»`),
+  tile('Вернувшиеся', pct(M.ret_people_share), `людей; дают ${pct(M.ret_visit_share)} визитов`),
+  tile('Поиски на сайте', fmt(GOAL_SEARCH), `${fmtD(M.search_per_visit)} на визит`)
+);
+
+/* ===== 03 dynamics ===== */
+(function () {
+  const days = D.days;
+  const cats = days.map((d) => d.d);
+  const ix = (d) => cats.indexOf(d);
+  const daily = columnChart({
+    w: 1100, h: 330, minw: 760, ml: 44, mt: 28, mb: 28,
+    cats, yMax: 1500, ticks: [0, 500, 1000, 1500],
+    series: [
+      { name: 'Живые визиты (оценка)', color: C1, vals: days.map((d) => d.clean) },
+      { name: 'Роботы (оценка)', color: C2, vals: days.map((d) => d.robotVisits) },
+    ],
+    bands: [
+      { from: ix('2026-08-13'), to: ix('2026-08-14'), label: '13–14 авг', tone: 'info' },
+      { from: ix('2026-09-01'), to: ix('2026-09-02'), label: '1–2 сен', tone: 'warn' },
+      { from: ix('2026-09-17'), to: ix('2026-09-20'), label: '17–20 сен', tone: 'warn' },
+      { from: ix('2026-10-01'), to: ix('2026-10-04'), label: '1–4 окт', tone: 'warn' },
+    ],
+    xTick: (i) => (i === 0 || days[i].d.endsWith('-01') || i === days.length - 1 ? dateShort(days[i].d) : null),
+    edgeAnchors: true,
+    tipTitle: (i) => `${WD[days[i].wd]}, ${dateRu(days[i].d)}`,
+    tipRows: (i) => {
+      const d = days[i];
+      return [
+        { color: C1, label: 'живые визиты (оценка)', value: fmt(d.clean) },
+        { color: C2, label: `роботы (оценка), ${pct(d.robots, 1)}`, value: fmt(d.robotVisits) },
+        { label: 'всего визитов', value: fmt(d.visits) },
+        { label: 'людей', value: fmt(d.people) },
+      ];
+    },
+    aria: 'Визиты по дням: живые визиты и роботы',
+  });
+  const dailyCard = card({
+    cls: 'c12',
+    title: `Живой трафик: ≈${fmt(M.weekday_avg)} визитов в будни и ≈${fmt(M.weekend_avg)} в выходные. Скачки — это роботы`,
+    sub: 'Визиты по дням, 22.07–20.10. Розовые полосы — окна с аномальной долей роботов, голубая — настоящий всплеск.',
+    legend: [{ name: 'Живые визиты (оценка)', color: C1 }, { name: 'Роботы (оценка)', color: C2 }],
+    body: dailySvg(daily),
+    table: {
+      head: ['Дата', 'День', 'Визиты', 'Люди', 'Роботы, %', 'Живые (оценка)', 'Роботы (оценка)'],
+      rows: days.map((d) => [d.d, WD[d.wd], fmt(d.visits), fmt(d.people), fmtD(d.robots, 2), fmt(d.clean), fmt(d.robotVisits)]),
+      num: [2, 3, 4, 5, 6],
+    },
+    note: `**13–14 августа — настоящий всплеск.** Живых визитов ${fmt(M.aug_peak_clean[0])} и ${fmt(M.aug_peak_clean[1])} против ≈${fmt(M.thu_fri_median_clean)} в обычные четверг и пятницу (**+${M.aug_peak_uplift_pct}%**). Роботов всего ${pct(byName(days.map((d) => [d.d, d.robots]), '2026-08-13')[1])} и ${pct(byName(days.map((d) => [d.d, d.robots]), '2026-08-14')[1])}, людей ${fmt(M.aug_peak_people[0])} и ${fmt(M.aug_peak_people[1])}. Причина в выгрузке не видна: стоит вспомнить, что происходило в эти дни (рассылка, публикация, акция, сезон «Школа»).`,
+    noteTone: 'info',
+  });
+  mount('dyn-mount').append(dailyCard);
+
+  const monthCats = ['июль*', 'август', 'сентябрь', 'октябрь*'];
+  const monthSvg = columnChart({
+    w: 520, h: 250, ml: 38, mt: 14, mb: 28, bw: 24,
+    cats: monthCats, yMax: 800, ticks: [0, 200, 400, 600, 800],
+    series: [
+      { name: 'Живые', color: C1, vals: [7, 8, 9, 10].map((m) => MM[m].clean_pd) },
+      { name: 'Роботы', color: C2, vals: [7, 8, 9, 10].map((m) => MM[m].robots_pd) },
+    ],
+    xTick: (i) => monthCats[i],
+    tipTitle: (i) => monthCats[i].replace('*', '') + ` · ${MM[7 + i].days} дн.`,
+    tipRows: (i) => [
+      { color: C1, label: 'живые визиты в день (оценка)', value: fmt(MM[7 + i].clean_pd) },
+      { color: C2, label: `роботы в день (оценка), ${pct(MM[7 + i].robot_share)} визитов`, value: fmt(MM[7 + i].robots_pd) },
+      { label: 'всего визитов в месяце', value: fmt(MM[7 + i].visits) },
+    ],
+    aria: 'Визиты в день по месяцам',
+  });
+  const monthCard = card({
+    cls: 'c6',
+    title: `Живой трафик в день: ${fmt(MM[8].clean_pd)} → ${fmt(MM[9].clean_pd)} → ${fmt(MM[10].clean_pd)}`,
+    sub: 'Август, сентябрь, октябрь: среднее число визитов в день без роботов (оценка) и роботы сверху.',
+    legend: [{ name: 'Живые визиты (оценка)', color: C1 }, { name: 'Роботы (оценка)', color: C2 }],
+    body: monthSvg,
+    table: {
+      head: ['Месяц', 'Дней', 'Визиты', 'Роботы (оценка)', 'Доля роботов', 'Живые в день', 'Всего в день'],
+      rows: [7, 8, 9, 10].map((m, i) => [monthCats[i], MM[m].days, fmt(MM[m].visits), fmt(MM[m].robots), pct(MM[m].robot_share), fmt(MM[m].clean_pd), fmt(MM[m].raw_pd)]),
+      num: [1, 2, 3, 4, 5, 6],
+    },
+    foot: '* Июль — 10 дней (22–31 июля), октябрь — 21 день (1–21 октября).',
+  });
+  const wdSvg = columnChart({
+    w: 520, h: 250, ml: 38, mt: 22, mb: 28, bw: 24,
+    cats: WD, yMax: 800, ticks: [0, 200, 400, 600, 800],
+    series: [{ name: 'Живые визиты', color: C1, vals: M.wd_avg_clean }],
+    labels: (i) => (i === 1 || i === 6 ? fmt(M.wd_avg_clean[i]) : null),
+    xTick: (i) => WD[i],
+    crosshair: false,
+    tipTitle: (i) => WD[i],
+    tipRows: (i) => [{ color: C1, label: 'живых визитов в среднем за день (оценка)', value: fmt(M.wd_avg_clean[i]) }],
+    aria: 'Живые визиты по дням недели',
+  });
+  const wdCard = card({
+    cls: 'c6',
+    title: `Будни активнее выходных в ${fmtD(M.weekday_weekend_ratio)} раза`,
+    sub: 'Среднее число живых визитов (оценка) по дням недели, 91 день.',
+    body: wdSvg,
+    table: {
+      head: ['День', 'Живые визиты в среднем'],
+      rows: WD.map((w, i) => [w, fmt(M.wd_avg_clean[i])]),
+      num: [1],
+    },
+    foot: 'Это типичный ритм B2B: заказы делают в рабочее время. Рассылки и акции логично ставить на вторник–четверг.',
+  });
+  mount('dyn-mount').append(monthCard, wdCard);
+})();
+function dailySvg(svg) { return h('div', { class: 'scroll-x' }, svg); }
+
+/* ===== 04 quality ===== */
+(function () {
+  const A = [];
+  const add = (name, tbl, extra) => {
+    const t = tbl.total, d = byName(tbl.rows, 'Прямые заходы');
+    A.push({ name, visits: t[1], robots: Math.round((t[1] * t[2]) / 100), share: t[2], dv: d[1], ds: d[2], extra });
+  };
+  add('1–2 сентября', D.anom_sep1, `Поиск: ${fmt(byName(D.anom_sep1.rows, 'Переходы из поисковых систем')[1])} визитов, ${pct(byName(D.anom_sep1.rows, 'Переходы из поисковых систем')[2], 2)} роботов`);
+  const sg = byName(D.anom_cities.rows, 'Сингапур'), ek = byName(D.anom_cities.rows, 'Екатеринбург');
+  add('17–20 сентября', D.anom_sep17, `Сингапур: ${fmt(sg[1])} визитов, ${pct(sg[2], 0)} роботов; Екатеринбург: ${fmt(ek[1])}, ${pct(ek[2], 2)}`);
+  add('1–2 октября', D.anom_oct1, `Поиск: ${fmt(byName(D.anom_oct1.rows, 'Переходы из поисковых систем')[1])} визитов, ${pct(byName(D.anom_oct1.rows, 'Переходы из поисковых систем')[2], 0)} роботов`);
+  const o4 = D.days.find((d) => d.d === '2026-10-04');
+  A.push({ name: '4 октября (воскресенье)', visits: o4.visits, robots: o4.robotVisits, share: o4.robots, dv: null, ds: null, extra: 'Разбивки по источникам в выгрузке нет' });
+  const restVisits = D.daily_sum_visits - sum(Object.values(M.anom).map((x) => x[1]));
+  const restRobots = D.daily_sum_robot_visits - M.anom_robots_total;
+  A.push({ name: 'Остальные 82 дня', visits: restVisits, robots: restRobots, share: (restRobots / restVisits) * 100, dv: null, ds: null, extra: `≈${fmt(restRobots / 82)} робот-визитов в день` });
+  const aRows = A.map((a) => [a.name, fmt(a.visits), fmt(a.robots), pct(a.share, 1), a.dv == null ? '—' : `${fmt(a.dv)} · ${pct(a.ds, 1)}`, a.extra]);
+  const aHead = ['Окно', 'Визиты', 'Роботов (≈)', 'Доля роботов', 'Прямые: визиты · доля роботов', 'Что ещё видно'];
+  const anomTbl = h('div', { class: 'tbl-wrap' }, tableEl(aHead, aRows, [1, 2, 3, 4]));
+  mount('quality-mount').append(
+    card({
+      cls: 'c12',
+      title: `Четыре всплеска дают ${pct(M.anom_robots_share_of_all, 0)} всех робот-визитов`,
+      sub: `Окна с аномальной долей роботов. Остальной фон — ≈${fmt(restRobots / 82)} робот-визитов в день.`,
+      body: anomTbl,
+      note: `**Почти все роботы — в «прямых заходах»:** ${pct(M.robots_direct_share, 0)} робот-визитов (${fmt(robotsByName['Прямые заходы'])} из ${approx(M.robot_visits)}). В поиске, наоборот, роботов ${pct(searchRow[4], 2)}.`,
+      noteTone: 'warn',
+    })
+  );
+  const nsSrc = byName(D.sources.rows, 'Прямые заходы');
+  const ba = [
+    ['Визиты', fmt(V), approx(M.clean_visits), `роботов ${fmt(M.robot_visits)} визитов (${pct(M.robot_pct)})`],
+    ['Люди', fmt(P), approx(M.people_if_no_robots), 'один робот-визит ≈ один «человек»: на всплеске 17–20 сентября было ' + fmtD(M.sep17_people_per_robot_visit, 2)],
+    ['Отказы', pct(M.bounce, 2), '≈' + pct(M.bounce_adj), 'каждый робот-визит считаем отказом'],
+    ['Вернувшиеся, % людей', pct(M.ret_people_share), '≈' + pct(M.ret_people_share_if_no_robots_lowerbound), 'вернувшиеся — не роботы'],
+    ['Доля «прямых» во всех визитах', pct((nsSrc[1] / srcTot) * 100), '≈' + pct(directCleanShare, 0), `из «прямых» вычтено ${fmt(robotsByName['Прямые заходы'])} робот-визитов`],
+  ];
+  mount('quality-mount').append(
+    card({
+      cls: 'c12',
+      title: 'Как роботы меняют картину',
+      sub: 'Показатель в Метрике и оценка без роботов.',
+      body: h('div', { class: 'tbl-wrap' }, tableEl(['Показатель', 'В Метрике', 'Без роботов (оценка)', 'Допущение'], ba, [1, 2])),
+    })
+  );
+  const br = D.direct_browsers.rows;
+  const brTotal = D.direct_browsers.total[1];
+  const brData = {
+    labelHead: 'Браузер', barHead: 'Визиты', cols: [{ h: 'Доля прямых', w: '80px' }, { h: 'Отказы, %', w: '80px' }],
+    rows: br.map((r) => ({
+      label: r[0], tag: r[0] === 'Google Chrome' ? 'отказы выше в 3–19 раз' : null, tagTone: r[0] === 'Google Chrome' ? 'warn' : '',
+      segs: [{ v: r[1], color: r[0] === 'Google Chrome' ? C2 : C1, name: 'визитов' }],
+      cells: [pct((r[1] / brTotal) * 100, 0), pct(r[2], 1)],
+    })),
+  };
+  mount('quality-mount').append(
+    card({
+      cls: 'c12',
+      title: `Прямые заходы: ${pct((br[0][1] / brTotal) * 100, 0)} — Chrome, и у него отказы ${pct(br[0][2], 1)}`,
+      sub: 'Прямые заходы по браузерам. У остальных браузеров отказы — от 3,7 до 24%.',
+      legend: [{ name: 'Google Chrome — подозрительный сегмент', color: C2 }, { name: 'Остальные браузеры', color: C1 }],
+      body: barTable(brData),
+      table: barTableData(brData),
+    })
+  );
+})();
+
+'use strict';
+/* ===== 05 audience ===== */
+(function () {
+  // new vs returning
+  const oneOff = P - M.ret_people;
+  const peopleBar = hstack('Люди', [
+    { v: M.ret_people, color: C1, name: 'вернулись хотя бы раз', text: pct((M.ret_people / P) * 100, 1) },
+    { v: oneOff, color: C3, name: 'не возвращались в периоде', text: pct((oneOff / P) * 100, 1) },
+  ]);
+  const visitBar = hstack('Визиты', [
+    { v: M.ret_visits, color: C1, name: 'визиты вернувшихся', text: pct(M.ret_visit_share, 1) },
+    { v: newRow[1], color: C3, name: 'визиты новых', text: pct((newRow[1] / V) * 100, 1) },
+  ]);
+  const body = h('div', null,
+    peopleBar, visitBar,
+    h('div', { class: 'tbl-wrap', style: { marginTop: '12px', maxHeight: 'none' } },
+      tableEl(['Сегмент', 'Визиты', 'Люди', 'Визитов на человека', 'Отказы, %'], [
+        ['Вернувшиеся', fmt(retRow[1]), fmt(retRow[2]), fmtD(retRow[1] / retRow[2]), fmtD(retRow[3], 2)],
+        ['Новые', fmt(newRow[1]), fmt(newRow[2]), fmtD(newRow[1] / newRow[2], 2), fmtD(newRow[3], 2)],
+      ], [1, 2, 3, 4]))
+  );
+  mount('audience-mount').append(
+    card({
+      cls: 'c12',
+      title: `Один вернувшийся приносит в ${fmtD(M.ret_visits_per_person / M.new_visits_per_person)} раза больше визитов, чем новый`,
+      sub: 'Люди и визиты в разрезе «вернувшиеся / новые».',
+      legend: [{ name: 'Вернувшиеся', color: C1 }, { name: 'Остальные (новые)', color: C3 }],
+      body,
+      note: `Счётчик, судя по 6 визитам 21 июля, запущен около этой даты: давние клиенты при первом визите считаются «новыми», поэтому доля вернувшихся — нижняя граница. Без роботов она ≈${pct(M.ret_people_share_if_no_robots_lowerbound, 0)} `,
+    })
+  );
+  // devices
+  const dv = D.devices.rows.filter((r) => r[1] > 10);
+  const devData = {
+    labelHead: 'Устройство', barHead: 'Визиты', cols: [{ h: 'Доля визитов', w: '84px' }, { h: 'Люди', w: '70px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '80px' }, { h: 'Роботы, %', w: '80px' }],
+    rows: dv.map((r) => {
+      const rob = Math.round((r[1] * r[4]) / 100);
+      return {
+        label: r[0],
+        segs: [{ v: r[1] - rob, color: C1, name: 'живые визиты (оценка)' }, { v: rob, color: C2, name: 'роботы (оценка)' }],
+        cells: [pct((r[1] / V) * 100), fmt(r[2]), fmtD(r[1] / r[2], 2), fmtD(r[3], 2), fmtD(r[4], 2)],
+      };
+    }),
+  };
+  mount('audience-mount').append(
+    card({
+      cls: 'c12',
+      title: `ПК — ${pct((dv[0][1] / V) * 100, 0)} визитов; смартфоны приходят реже: ${fmtD(dv[1][1] / dv[1][2], 2)} визита на человека против ${fmtD(dv[0][1] / dv[0][2], 2)}`,
+      sub: 'Устройства. Планшеты (179 визитов) и ТВ (1 визит) — в таблице, на графике не видны.',
+      legend: [{ name: 'Живые визиты (оценка)', color: C1 }, { name: 'Роботы (оценка)', color: C2 }],
+      body: barTable(devData),
+      table: { head: ['Устройство', 'Визиты', 'Люди', 'Отказы, %', 'Роботы, %'], rows: D.devices.rows.map((r) => [r[0], fmt(r[1]), fmt(r[2]), fmtD(r[3], 2), fmtD(r[4], 2)]), num: [1, 2, 3, 4] },
+      foot: `Смартфоны — ${pct(M.dev_share_people['Смартфоны'])} «людей» при ${pct(M.dev_share_visits['Смартфоны'])} визитов: часть клиентов заходит и с телефона, и с компьютера.`,
+    })
+  );
+  // regions
+  const EAST = ['Свердловская область', 'Алтайский край', 'Кемеровская область (Кузбасс)', 'Красноярский край', 'Республика Саха (Якутия)', 'Иркутская область', 'Республика Бурятия'];
+  const regColor = (n) => (EAST.includes(n) ? C1 : n.startsWith('Москва') ? CN : C2);
+  const regData = {
+    labelHead: 'Регион', barHead: 'Визиты', cols: [{ h: 'Доля визитов', w: '84px' }, { h: 'Люди', w: '70px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '80px' }],
+    rows: D.regions.rows.map((r) => ({
+      label: r[0],
+      tag: r[0].includes('определен') ? 'вероятно роботы и VPN' : null,
+      segs: [{ v: r[1], color: regColor(r[0]), name: 'визитов' }],
+      cells: [pct((r[1] / V) * 100), fmt(r[2]), fmtD(r[1] / r[2]), fmtD(r[3], 2)],
+    })),
+  };
+  mount('audience-mount').append(
+    card({
+      cls: 'c12',
+      title: `Урал, Сибирь и Дальний Восток — ${pct(M.east_visit_share, 0)} визитов от ${pct(M.east_people_share, 0)} людей`,
+      sub: 'Топ-10 регионов из 449 в выгрузке. Лояльные регионы заходят по 5–12 раз на человека.',
+      legend: [{ name: 'Урал, Сибирь, Дальний Восток', color: C1 }, { name: 'Москва и область', color: CN }, { name: 'Регион не определён', color: C2 }],
+      body: barTable(regData),
+      table: barTableData(regData),
+      note: `**Регион не определён** у ${fmt(M.undef_visits)} визитов (${pct(M.undef_visit_share)}) и ${fmt(M.undef_people)} людей (**${pct(M.undef_people_share, 0)} всех «людей»**), отказы ${pct(M.undef_bounce, 0)}. Это почти не клиенты: заходят по разу и сразу уходят — роботы, прокси, VPN. Москва и область: ${fmt(byName(D.regions.rows, 'Москва и Московская область')[2])} человек (${pct(M.moscow_people_share)}), ${fmtD(M.moscow_vpp, 2)} визита на человека, отказы ${pct(byName(D.regions.rows, 'Москва и Московская область')[3], 0)}.`,
+      noteTone: 'warn',
+    })
+  );
+  // cities
+  const cityColor = (n) => (n === 'Сингапур' ? C2 : n === 'Москва' || n === 'Санкт-Петербург' ? CN : C1);
+  const cityData = {
+    labelHead: 'Город', barHead: 'Визиты', cols: [{ h: 'Доля визитов', w: '84px' }, { h: 'Люди', w: '70px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '80px' }],
+    rows: D.cities.rows.map((r) => ({
+      label: r[0], tag: r[0] === 'Сингапур' ? 'роботы' : null, tagTone: 'warn',
+      segs: [{ v: r[1], color: cityColor(r[0]), name: 'визитов' }],
+      cells: [pct((r[1] / V) * 100), fmt(r[2]), fmtD(r[1] / r[2]), fmtD(r[3], 2)],
+    })),
+  };
+  mount('audience-mount').append(
+    card({
+      cls: 'c12',
+      title: `Екатеринбург — ${pct(M.city_share['Екатеринбург'])} визитов; Барнаул, Улан-Удэ и Кемерово заходят по 10–11 раз на человека`,
+      sub: 'Топ-10 городов из 968 в выгрузке.',
+      legend: [{ name: 'Города востока', color: C1 }, { name: 'Москва, Санкт-Петербург', color: CN }, { name: 'Сингапур — роботы', color: C2 }],
+      body: barTable(cityData),
+      table: barTableData(cityData),
+      foot: `Сингапур: ${fmt(byName(D.cities.rows, 'Сингапур')[1])} визитов, ${pct(byName(D.cities.rows, 'Сингапур')[3], 1)} отказов; в окне 17–20 сентября все ${fmt(byName(D.anom_cities.rows, 'Сингапур')[1])} его визитов — роботы.`,
+    })
+  );
+})();
+
+/* ===== 06 sources ===== */
+(function () {
+  const srcData = {
+    labelHead: 'Источник', barHead: 'Визиты', cols: [{ h: 'Доля', w: '66px' }, { h: 'Люди', w: '70px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '76px' }, { h: 'Роботы, %', w: '76px' }],
+    rows: D.sources.rows.map((r) => {
+      const rob = robotsByName[r[0]];
+      return {
+        label: ({ 'Переходы из поисковых систем': 'Поисковые системы', 'Переходы из социальных сетей': 'Социальные сети', 'Переходы по ссылкам на сайтах': 'Ссылки на сайтах' })[r[0]] || r[0],
+        full: r[0],
+        segs: [{ v: r[1] - rob, color: C1, name: 'живые визиты (оценка)' }, { v: rob, color: C2, name: 'роботы (оценка)' }],
+        cells: [pct((r[1] / srcTot) * 100), fmt(r[2]), fmtD(r[1] / r[2], 2), fmtD(r[3], 2), fmtD(r[4], 2)],
+      };
+    }),
+  };
+  mount('sources-mount').append(
+    card({
+      cls: 'c12',
+      title: `Поиск — ${pct(M.src_share['Переходы из поисковых систем'])} визитов; в «прямых» ${pct(byName(D.sources.rows, 'Прямые заходы')[4], 0)} — роботы`,
+      sub: 'Последний значимый источник. «Внутренние переходы» — визиты, начатые внутри сайта.',
+      legend: [{ name: 'Живые визиты (оценка)', color: C1 }, { name: 'Роботы (оценка)', color: C2 }],
+      body: barTable(srcData),
+      table: barTableData(srcData),
+      foot: `У «внутренних переходов» отказы ${pct(byName(D.sources.rows, 'Внутренние переходы')[3])} и ${fmtD(M.src_vpp['Внутренние переходы'])} визита на человека: вероятно, это продолжение работы после паузы больше 30 минут — клиент вернулся на открытую страницу, и Метрика начала новый визит. Ещё ${fmt(M.src_visits_no_source)} визитов — без источника.`,
+    })
+  );
+  // small multiples
+  const mons = [7, 8, 9, 10];
+  const mc = ['июл*', 'авг', 'сен', 'окт*'];
+  const mk = (title, series, key) => {
+    const svg = columnChart({
+      w: 270, h: 210, ml: 30, mt: 12, mb: 26, bw: 24,
+      cats: mc, yMax: 350, ticks: [0, 100, 200, 300],
+      series,
+      xTick: (i) => mc[i],
+      crosshair: false,
+      tipTitle: (i) => `${title} · ${mc[i].replace('*', '')}`,
+      tipRows: (i) => series.map((s) => ({ color: s.color, label: s.name + ' в день', value: fmt(s.vals[i]) })),
+      aria: title + ': визитов в день по месяцам',
+    });
+    return h('div', { class: 'mini' }, h('h4', null, title), svg);
+  };
+  const SM = M.srcm;
+  const vals = (k) => mons.map((m) => SM[m][k]);
+  const mini = h('div', { class: 'mini-grid' },
+    mk('Поиск', [{ name: 'Визиты', color: C1, vals: vals('search') }]),
+    mk('Прямые', [{ name: 'Живые (оценка)', color: C1, vals: vals('direct_clean') }, { name: 'Роботы (оценка)', color: C2, vals: vals('robots') }]),
+    mk('Внутренние', [{ name: 'Визиты', color: C1, vals: vals('internal') }]),
+    mk('Сайты, соцсети, прочее', [{ name: 'Визиты', color: C1, vals: vals('other') }])
+  );
+  mount('sources-mount').append(
+    card({
+      cls: 'c12',
+      title: `Поиск в октябре ниже на ${Math.round((1 - SM[10].search / SM[8].search) * 100)}%, а рост «прямых» в сентябре — это роботы`,
+      sub: 'Визиты в день по источникам и месяцам, одна шкала на всех графиках. Роботы вычтены из «прямых» (≈98% из них там).',
+      legend: [{ name: 'Визиты', color: C1 }, { name: 'Роботы (оценка)', color: C2 }],
+      body: mini,
+      table: {
+        head: ['Месяц', 'Дней', 'Поиск', 'Прямые (живые)', 'Роботы', 'Внутренние', 'Сайты, соцсети, прочее'],
+        rows: mons.map((m, i) => [mc[i], SM[m].days, SM[m].search, SM[m].direct_clean, SM[m].robots, SM[m].internal, SM[m].other]),
+        num: [1, 2, 3, 4, 5, 6],
+      },
+      foot: `Визитов в день. * Июль — 22–31 июля, октябрь — 1–21 октября. Живые «прямые» стабильны: ${SM[7].direct_clean}, ${SM[8].direct_clean}, ${SM[9].direct_clean}, ${SM[10].direct_clean}.`,
+    })
+  );
+  // engines
+  const engTot = D.engines.total[1];
+  const engData = {
+    labelHead: 'Поисковая система', barHead: 'Визиты', cols: [{ h: 'Доля', w: '64px' }, { h: 'Отказы, %', w: '76px' }],
+    rows: D.engines.rows.map((r) => ({
+      label: r[0].replace(', результаты поиска', ''),
+      full: r[0],
+      tag: r[0] === 'Яндекс.Картинки' || r[0] === 'Умная камера Яндекса' ? 'визуальный поиск' : null,
+      segs: [{ v: r[1], color: C1, name: 'визитов' }],
+      cells: [pct((r[1] / engTot) * 100), fmtD(r[3], 1)],
+      extra: [{ label: 'людей', value: fmt(r[2]) }, { label: 'роботы, %', value: fmtD(r[4], 2) }],
+    })),
+  };
+  mount('sources-mount').append(
+    card({
+      cls: 'c6',
+      title: `Яндекс — ${pct(M.engine_ya_share, 0)} поиска, Google — ${pct(M.engine_go_share, 0)}`,
+      sub: `Из Google приходит почти треть: это заметно больше, чем обычно для рунета. Картинки и «умная камера» — ${M.engine_img_cam} визитов.`,
+      body: barTable(engData),
+      table: barTableData(engData),
+    })
+  );
+  // referrals
+  const refRows = D.referrals.rows.slice(0, 10);
+  const refTags = { 'ntp.msn.com': 'новая вкладка Edge', 'link.2gis.ru': '2ГИС', 'e.mail.ru': 'почта', 'alice.yandex.ru': 'ИИ' };
+  const refData = {
+    labelHead: 'Сайт-источник', barHead: 'Визиты', cols: [{ h: 'Люди', w: '60px' }, { h: 'Визитов на человека', w: '96px' }],
+    rows: refRows.map((r) => ({
+      label: r[0], tag: refTags[r[0]] || null,
+      segs: [{ v: r[1], color: C1, name: 'визитов' }],
+      cells: [fmt(r[2]), fmtD(r[1] / r[2])],
+      extra: [{ label: 'отказы, %', value: fmtD(r[3], 1) }, { label: 'роботы, %', value: fmtD(r[4], 1) }],
+    })),
+  };
+  const aiTot = D.ai.total;
+  mount('sources-mount').append(
+    card({
+      cls: 'c6',
+      title: 'Сайты-источники: сотни визитов из карт, почты и партнёрских площадок',
+      sub: `Топ-10 из 43 в выгрузке. ИИ-источники — ${fmt(aiTot[1])} визитов (${pct((aiTot[1] / V) * 100, 1)}), из них Алиса — ${fmt(byName(D.ai.rows, 'alice.yandex.ru')[1])}.`,
+      body: barTable(refData),
+      table: barTableData(refData),
+      foot: `ntp.msn.com — ${fmt(refRows[0][1])} визитов от ${refRows[0][2]} человек: клиенты открывают магазин с плитки на новой вкладке. Это закладка, а не новый канал. Яндекс.Карты принесли ${fmt(byName(D.engines.rows, 'Яндекс.Карты')[1])} визита, 2ГИС — ${fmt(byName(D.referrals.rows, 'link.2gis.ru')[1])}.`,
+    })
+  );
+})();
+
+/* ===== 07 behavior ===== */
+(function () {
+  const PAGE_NAMES = {
+    '/search/': 'поиск по сайту', '/personal/cart/': 'корзина', '/auth/': 'вход и регистрация', '/': 'главная',
+    '/catalog/tovary_dlya_shkoly_i_ofisa/': 'раздел «Товары для школы и офиса»', '/new/': 'новинки', '/catalog/': 'каталог',
+    '/catalog/tovary_dlya_shkoly_i_ofisa/ruchki_sterzhni/': 'ручки и стержни',
+  };
+  const pgTot = D.pages.total[1];
+  const pgData = {
+    labelHead: 'Страница', barHead: 'Просмотры', cols: [{ h: 'Доля просмотров', w: '96px' }, { h: 'Люди', w: '70px' }, { h: 'Просмотров на человека', w: '110px' }],
+    rows: D.pages.rows.map((r) => ({
+      label: r[0], sub: PAGE_NAMES[r[0]] || null,
+      segs: [{ v: r[1], color: C1, name: 'просмотров' }],
+      cells: [pct((r[1] / pgTot) * 100), fmt(r[2]), fmtD(r[1] / r[2])],
+    })),
+  };
+  mount('behavior-mount').append(
+    card({
+      cls: 'c12',
+      title: `Поиск и корзина — ${pct(M.page_view_share['/search/'] + M.page_view_share['/personal/cart/'], 0)} всех просмотров`,
+      sub: `Топ-8 страниц из ${fmt(34648)} в выгрузке; вместе они дают ${pct(M.top8_view_share, 0)} просмотров, остальное — карточки товаров и разделы.`,
+      body: barTable(pgData),
+      table: barTableData(pgData),
+      foot: `Страница поиска: ${fmtD(M.page_vpp['/search/'])} просмотров на человека; «Новинки» — ${fmtD(M.page_vpp['/new/'])}. Это страницы, где живут самые вовлечённые клиенты.`,
+    })
+  );
+  // reach
+  const reachRows = Object.entries(M.reach).sort((a, b) => b[1][0] - a[1][0]);
+  const reachData = {
+    labelHead: 'Страница', barHead: 'Люди', cols: [{ h: 'Люди', w: '64px' }, { h: 'Доля людей', w: '84px' }],
+    rows: reachRows.map(([n, [p, pc]]) => ({ label: n, segs: [{ v: p, color: C1, name: 'людей' }], cells: [fmt(p), pct(pc, 1)] })),
+    max: P,
+  };
+  mount('behavior-mount').append(
+    card({
+      cls: 'c6',
+      title: `Корзину открывали ${pct(M.reach['Корзина'][1])} людей, страницу входа — ${pct(M.reach['Вход /auth/'][1])}`,
+      sub: 'Доля всех «людей», дошедших до страницы. Один человек может быть в нескольких строках.',
+      body: barTable(reachData),
+      table: barTableData(reachData),
+      foot: 'Шкала — все 20 722 «человека». Остальные заходят сразу в карточки и бренд-страницы из поиска.',
+    })
+  );
+  // internal
+  const intData = {
+    labelHead: 'Начало визита', barHead: 'Визиты', cols: [{ h: 'Люди', w: '60px' }, { h: 'Визитов на человека', w: '96px' }],
+    rows: D.internal.rows.map((r) => ({ label: r[0], sub: PAGE_NAMES[r[0]] || null, segs: [{ v: r[1], color: C1, name: 'визитов' }], cells: [fmt(r[2]), fmtD(r[1] / r[2])] })),
+  };
+  mount('behavior-mount').append(
+    card({
+      cls: 'c6',
+      title: `${fmt(D.internal.total[1])} визитов начинаются внутри сайта — чаще всего на поиске`,
+      sub: 'Страницы, с которых стартует визит с источником «внутренний переход».',
+      body: barTable(intData),
+      table: barTableData(intData),
+      foot: `На /search/ — ${fmt(2812)} визитов от ${fmt(396)} человек: ≈${fmtD(M.internal_search_vpp)} раза на каждого. Клиенты работают с поиском длинными сессиями и возвращаются к нему.`,
+    })
+  );
+  // entry pages
+  const entryRows = (rows, n) => rows.slice(0, n).map((r) => {
+    const e = entryInfo(r[0]);
+    return {
+      label: (e.http ? 'http: ' : '') + e.short, full: r[0], tag: e.type, tagTone: e.service ? 'warn' : '',
+      segs: [{ v: r[1], color: e.service || e.http ? C2 : C1, name: 'визитов' }],
+      cells: [fmt(r[2]), fmtD(r[1] / r[2]), fmtD(r[3], 1)],
+    };
+  });
+  const entAll = {
+    labelHead: 'Страница входа', barHead: 'Визиты', cols: [{ h: 'Люди', w: '60px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '76px' }],
+    rows: entryRows(D.entry_all.rows, 14),
+  };
+  const entSvcAll = D.entry_all.rows.filter((r) => entryInfo(r[0]).service).reduce((a, r) => a + r[1], 0);
+  mount('behavior-mount').append(
+    card({
+      cls: 'c12',
+      title: `Главная — ${pct(M.ea_root_share, 0)} входов; ещё не менее ${pct((entSvcAll / V) * 100, 1)} визитов начинаются со служебных страниц`,
+      sub: 'Топ-14 страниц входа из 24 340 в выгрузке.',
+      legend: entLegend,
+      body: barTable(entAll),
+      table: barTableData(entAll),
+      foot: `Корзина, личный кабинет, вход и оформление: ${fmt(entSvcAll)} визитов только среди показанных строк. На http-версию сайта — ${fmt(M.http_entries)} входов: проверьте редирект на https. ${fmt(M.auth_register_visits)} визита на страницу регистрации пришли от ${M.auth_register_people} человек — повторные попытки или технический трафик.`,
+    })
+  );
+})();
+
+/* ===== 08 queries ===== */
+(function () {
+  const known = M.ph_total_known;
+  const segs = [
+    { v: M.ph_brand_sum, color: C1, name: 'бренд магазина (топ-30 фраз)', text: pct((M.ph_brand_sum / known) * 100, 1) },
+    { v: M.ph_nonbrand_sum, color: C3, name: 'товарные запросы без бренда (топ-30)', text: pct((M.ph_nonbrand_sum / known) * 100, 1) },
+    { v: M.ph_tail, color: CN, name: `хвост: ${fmt(M.ph_tail_phrases)} фраз`, text: pct((M.ph_tail / known) * 100, 1) },
+  ];
+  const typeNames = Object.entries(M.ph_type_sums).sort((a, b) => b[1] - a[1]);
+  mount('queries-mount').append(
+    card({
+      cls: 'c12',
+      title: `Бренд — не менее ${pct(M.ph_brand_share_of_known, 0)} известных запросов; в топ-30 фраз — ${pct(M.ph_brand_share_of_top, 0)}`,
+      sub: `Структура ${fmt(known)} визитов из поиска, где фраза известна.`,
+      legend: [
+        { name: `Бренд (топ-30): ${fmt(M.ph_brand_sum)}`, color: C1 },
+        { name: `Товарные без бренда (топ-30): ${fmt(M.ph_nonbrand_sum)}`, color: C3 },
+        { name: `Хвост из ${fmt(M.ph_tail_phrases)} фраз: ${fmt(M.ph_tail)}`, color: CN },
+      ],
+      body: hstack('Визиты', segs),
+      note: `Ещё ${fmt(M.ph_hidden)} визитов из поиска (**${pct(M.ph_hidden_share)}**) пришли без фразы: поисковики её скрыли. Общих категорийных запросов вроде «тетради оптом» в топ-30 нет. Хвост — по ≈${fmtD(M.ph_tail / M.ph_tail_phrases, 1)} визита на фразу: это карточки товаров.`,
+    })
+  );
+  // brand phrases grouped
+  const grouped = {};
+  M.ph_brand_list.forEach(([s, v]) => { grouped[s] = (grouped[s] || 0) + v; });
+  const bl = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const cnt = {};
+  M.ph_brand_list.forEach(([s]) => { cnt[s] = (cnt[s] || 0) + 1; });
+  const brandData = {
+    labelHead: 'Фраза с брендом', barHead: 'Визиты', cols: [{ h: 'Доля известных', w: '96px' }],
+    rows: bl.map(([s, v]) => ({
+      label: s.length > 52 ? s.slice(0, 50) + '…' : s, full: s, tag: cnt[s] > 1 ? `${cnt[s]} строк` : null,
+      segs: [{ v, color: C1, name: 'визитов' }], cells: [pct((v / known) * 100, 1)],
+    })),
+  };
+  mount('queries-mount').append(
+    card({
+      cls: 'c6',
+      title: 'Бренд ищут как «ОфисСклад Екатеринбург официальный сайт»',
+      sub: 'Брендовые фразы из топ-30. Строки с одинаковым текстом объединены: в выгрузке это, судя по всему, разные написания названия.',
+      body: barTable(brandData),
+      table: barTableData(brandData),
+    })
+  );
+  // non-brand typed
+  const nb = M.ph_nonbrand_typed;
+  const nbData = {
+    labelHead: 'Фраза без бренда', barHead: 'Визиты', cols: [{ h: 'Визитов', w: '64px' }],
+    rows: nb.map(([s, v, t]) => ({
+      label: s.length > 46 ? s.slice(0, 44) + '…' : s, full: s, tag: t, segs: [{ v, color: C3, name: 'визитов' }], cells: [fmt(v)],
+    })),
+  };
+  mount('queries-mount').append(
+    card({
+      cls: 'c6',
+      title: 'Без бренда ищут штрихкод, артикул или название «как в прайсе»',
+      sub: `Топ-фразы без бренда: штрихкоды — ${fmt(M.ph_type_sums['Штрихкод'])} визитов, артикулы и коды — ${fmt(M.ph_type_sums['Артикул / код'])}, названия из прайсов — ${fmt(M.ph_type_sums['Название «как в прайсе»'])}.`,
+      body: barTable(nbData),
+      table: barTableData(nbData),
+    })
+  );
+  // organic entries
+  const eo = D.entry_org.rows;
+  const eoTot = D.entry_org.total[1];
+  const eoData = {
+    labelHead: 'Страница входа из поиска', barHead: 'Визиты', cols: [{ h: 'Люди', w: '60px' }, { h: 'Визитов на человека', w: '96px' }, { h: 'Отказы, %', w: '76px' }],
+    rows: eo.map((r) => {
+      const e = entryInfo(r[0]);
+      return {
+        label: (e.http ? 'http: ' : '') + e.short, full: r[0], tag: e.type, tagTone: e.service ? 'warn' : '',
+        segs: [{ v: r[1], color: e.service || e.http ? C2 : C1, name: 'визитов' }],
+        cells: [fmt(r[2]), fmtD(r[1] / r[2]), fmtD(r[3], 1)],
+      };
+    }),
+  };
+  mount('queries-mount').append(
+    card({
+      cls: 'c12',
+      title: `Из поиска ${pct(M.org_service_share)} визитов (${fmt(M.org_service_entries)}) приходят на служебные страницы, а бренд-страницы приводят новых людей`,
+      sub: `Страницы входа из поиска, топ-20 из ${fmt(12739)} в выгрузке. Всего визитов из поиска — ${fmt(eoTot)}.`,
+      legend: entLegend,
+      body: barTable(eoData),
+      table: barTableData(eoData),
+      note: `**Служебные страницы в выдаче:** корзина — 803 визита, личный кабинет — 176, вход и регистрация — 211, оформление — 37. Это либо быстрые ссылки под результатом по бренду, либо служебные URL попали в индекс: стоит проверить в Яндекс.Вебмастере. **Бренд-страницы** (BG, Kokos, 1Toy, Devente) — ${fmt(M.org_brand_entries)} визитов от ${fmt(M.org_brand_people)} человек: почти по одному визиту на человека, то есть это новые люди.`,
+      noteTone: 'info',
+    })
+  );
+})();
+
+/* ===== 09 goals ===== */
+(function () {
+  const NOTES = {
+    search: 'основное действие клиентов',
+    form: 'поиск, вход, корзина и заказ вместе — это не конверсия',
+    file: 'скачивание файлов, в том числе прайсов',
+    contact_data: 'вход, регистрация или заказ — не различить',
+    contact_data_sent: `${pct((6703 / 6948) * 100)} от «заполнил контактные данные»`,
+    email: 'почти не используется или не отслеживается',
+    social: 'почти не используется',
+    action: 'показ слайда — не действие клиента',
+    phone: 'почти не используется или телефон не размечен как ссылка',
+  };
+  const G = D.goals.slice().sort((a, b) => b.n - a.n);
+  const gData = {
+    labelHead: 'Цель', barHead: 'Достижения за период', cols: [{ h: 'Достижений', w: '90px' }, { h: 'На визит', w: '72px' }],
+    rows: G.map((g) => ({
+      label: g.name.replace('Автоцель: ', ''), sub: NOTES[g.type] || '', full: g.name,
+      tag: g.name.startsWith('Автоцель') ? 'автоцель' : 'настроена вручную',
+      segs: [{ v: g.n, color: g.type === 'action' ? CN : C1, name: 'достижений' }],
+      cells: [fmt(g.n), fmtD(g.n / V, 3)],
+    })),
+  };
+  mount('goals-mount').append(
+    card({
+      cls: 'c12',
+      title: 'Целей много, но ни одна не равна заказу',
+      sub: 'Достижения целей за 91 день. Серые — показы слайдов.',
+      legend: [{ name: 'Действия клиентов', color: C1 }, { name: 'Показы слайдов (баннеров)', color: CN }],
+      body: barTable(gData),
+      table: barTableData(gData),
+      note: `Контактные цели (${fmt(goal('contact_data'))} и ${fmt(goal('contact_data_sent'))}) нельзя читать как заявки: автоцель срабатывает на любое поле с e-mail или телефоном. Каналы связи почти не используются: телефон — ${goal('phone')} клика, e-mail — ${goal('email')}, соцсети — ${goal('social')}.`,
+      noteTone: 'warn',
+    })
+  );
+})();
+
+'use strict';
+/* ===== 10 growth: recommendations ===== */
+const THEMES = ['Измерения', 'Конверсия', 'Удержание', 'Привлечение и SEO'];
+const PRIO = { 1: 'Сначала', 2: 'Дальше', 3: 'По ресурсу' };
+const PHASES = [
+  { n: 1, t: 'Первые 30 дней', s: 'Измерения и гигиена данных' },
+  { n: 2, t: '30–60 дней', s: 'Поиск, карточки, рассылка' },
+  { n: 3, t: '60–90 дней', s: 'Удержание и рост' },
+];
+const uniq = (id) => id;
+const phoneN = goal('phone'), emailN = goal('email'), fileN = goal('file');
+const pgRow = (p) => byName(D.pages.rows, p);
+const newPg = pgRow('/new/');
+const mailRow = byName(D.referrals.rows, 'e.mail.ru');
+const gisRow = byName(D.referrals.rows, 'link.2gis.ru');
+const refN = (n) => byName(D.referrals.rows, n);
+const bgEntry = byName(D.entry_all.rows, 'https://shop.officesklad.example/brands/bg-russia/');
+const dirRow = byName(D.sources.rows, 'Прямые заходы');
+const chromeRow = byName(D.direct_browsers.rows, 'Google Chrome');
+const brTotal2 = D.direct_browsers.total[1];
+const cityRow = (n) => byName(D.cities.rows, n);
+const pst = M.ph_type_sums;
+
+const REC = [
+  {
+    id: 'И1', theme: 'Измерения', prio: 1, effort: 'Средние', phase: 1,
+    title: 'Включить электронную коммерцию и настроить воронку заказа',
+    hook: `Сейчас нет ни суммы заказов, ни конверсии: «отправка формы» — ${fmt(GOAL_FORM)}, «отправил контактные данные» — ${fmt(goal('contact_data_sent'))}.`,
+    data: [
+      'Электронная коммерция не включена: нет заказов, сумм и среднего чека.',
+      `Автоцели смешивают поиск, вход, корзину и заказ: «отправка формы» — ${fmt(GOAL_FORM)} (${fmtD(M.form_per_visit)} на визит), «поиск по сайту» — ${fmt(GOAL_SEARCH)}.`,
+      `Контакты почти не измеряются: клик по телефону — ${phoneN}, по e-mail — ${emailN}, скачивание файлов — ${fileN} за ${DAYS} день.`,
+    ],
+    todo: [
+      'Передавать в Метрику данные e-commerce: просмотр карточки, добавление в корзину, начало оформления, покупка (сумма, состав, номер заказа).',
+      'Завести цели воронки: добавил в корзину → начал оформление → заказ; отдельно — регистрация и вход.',
+      'Разметить обращения: звонок, e-mail, мессенджер, «заказать звонок», скачивание прайса.',
+      'Сверить заказы Метрики с заказами в 1С или CRM за любую неделю.',
+    ],
+    kpi: 'Конверсия визит → заказ и человек → заказ; выручка и средний чек по источникам, регионам и сегментам «новые / вернувшиеся».',
+  },
+  {
+    id: 'И2', theme: 'Измерения', prio: 1, effort: 'Низкие', phase: 1,
+    title: 'Очистить данные от роботов и внутреннего трафика',
+    hook: `${pct(M.robot_pct)} визитов — роботы; отказы ${pct(M.bounce)} вместо ≈${pct(M.bounce_adj)}, а до ⅓ «людей» могут быть роботами (оценка).`,
+    data: [
+      `Роботов ${approx(M.robot_visits)} визитов, ${pct(M.robots_direct_share, 0)} из них — в «прямых». ${pct((chromeRow[1] / brTotal2) * 100, 0)} прямых — Google Chrome с отказами ${pct(chromeRow[2])}.`,
+      `Четыре всплеска дают ${pct(M.anom_robots_share_of_all, 0)} робот-визитов: 1–2 сен, 17–20 сен, 1–2 окт, 4 окт. В окне 17–20 сентября Сингапур — 100% роботов.`,
+      `Доля роботов выросла: август ${pct(MM[8].robot_share)} → сентябрь ${pct(MM[9].robot_share)} → октябрь ${pct(MM[10].robot_share)}.`,
+    ],
+    todo: [
+      'Включить фильтрацию роботов в настройках счётчика и сделать сегмент «без роботов» основным во всех отчётах.',
+      'Исключить трафик сотрудников: офис, склад, менеджеры (по IP или cookie).',
+      'Разработчикам: разобрать серверные логи в дни всплесков (сети дата-центров, User-Agent) и при необходимости ограничить частоту запросов.',
+      'Добавить долю роботов в еженедельный отчёт — это сигнал, что фильтр работает.',
+    ],
+    kpi: 'Доля роботов, отказы и число «людей» без скачков; метрики Метрики сходятся с серверными логами.',
+  },
+  {
+    id: 'И3', theme: 'Измерения', prio: 2, effort: 'Низкие', phase: 1,
+    title: 'Разметить все внешние ссылки UTM-метками',
+    hook: `«Прямые» — ${pct((dirRow[1] / srcTot) * 100)} визитов; даже без роботов это ${approx(directClean)} визитов без известного источника.`,
+    data: [
+      `После вычета роботов в «прямых» остаётся ${approx(directClean)} визитов — ≈${pct(directCleanShare, 0)} живого трафика.`,
+      `Рассылки, 2ГИС и партнёры видны только как домены: e.mail.ru — ${fmt(mailRow[1])} визитов, link.2gis.ru — ${fmt(gisRow[1])}, saleykt.ru — ${fmt(refN('saleykt.ru')[1])}, 24-ok.ru — ${fmt(refN('24-ok.ru')[1])}.`,
+      'Рекламных и почтовых источников в отчёте нет — их либо не используют, либо не размечают.',
+    ],
+    todo: [
+      'Единый шаблон UTM (source, medium, campaign) для рассылок, подписей менеджеров, карточек 2ГИС и Яндекс Бизнеса, прайс-листов и партнёров.',
+      'Вести список размеченных каналов и сверять его раз в месяц.',
+    ],
+    kpi: 'Доля «прямых» среди живых визитов снижается, доля визитов с меткой растёт.',
+  },
+  {
+    id: 'И4', theme: 'Измерения', prio: 2, effort: 'Средние', phase: 2,
+    title: 'Передавать ID клиента из личного кабинета',
+    hook: '«Человек» в Метрике — это браузер, а не клиент: один клиент заходит и с компьютера, и с телефона.',
+    data: [
+      `Смартфоны — ${pct(M.dev_share_people['Смартфоны'])} «людей» при ${pct(M.dev_share_visits['Смартфоны'])} визитов: ${fmtD(M.dev_vpp['Смартфоны'], 2)} визита на человека против ${fmtD(M.dev_vpp['ПК'], 2)} на ПК.`,
+      `Ядро — ${fmt(M.ret_people)} вернувшихся по ${fmtD(M.ret_visits_per_person)} визита; без ID непонятно, сколько из них реальных клиентов и что они заказывают.`,
+    ],
+    todo: [
+      'Передавать ID авторизованного клиента (User ID) и номер клиента в 1С или CRM; персональные данные не передавать.',
+      'Сопоставить визиты с заказами: когорты по первому визиту, частота и сумма заказов, регионы.',
+    ],
+    kpi: 'Число активных клиентов за 30 и 90 дней, повторные заказы, когортное удержание.',
+  },
+  {
+    id: 'И5', theme: 'Измерения', prio: 2, effort: 'Низкие', phase: 1,
+    title: 'Измерять внутренний поиск: запросы и пустую выдачу',
+    hook: `${fmt(GOAL_SEARCH)} поисков — главное действие на сайте, но неизвестно, сколько закончилось пустой выдачей.`,
+    data: [
+      `Поиск: ${fmtD(M.search_per_visit)} на визит, ${fmtD(M.search_per_person)} на человека; страница /search/ — ${pct(M.page_view_share['/search/'])} всех просмотров.`,
+      `Внутренние визиты стартуют на /search/ ${fmt(2812)} раз (${fmt(396)} человек, ≈${fmtD(M.internal_search_vpp)} раза на каждого): поиск — рабочая страница.`,
+    ],
+    todo: [
+      'Отправлять в Метрику событие поиска: запрос, число результатов, клик по результату, добавление в корзину из выдачи.',
+      'Раз в неделю разбирать топ запросов без результата и запросы, после которых клиент ищет снова.',
+    ],
+    kpi: 'Доля поисков без результата; путь поиск → карточка → корзина; число поисков до добавления в корзину.',
+  },
+  {
+    id: 'К1', theme: 'Конверсия', prio: 1, effort: 'Средние', phase: 2,
+    title: 'Научить поиск находить товар по артикулу, штрихкоду и «названию как в прайсе»',
+    hook: 'В небрендовых запросах Яндекса — штрихкоды, артикулы и названия целиком; на таком же языке клиенты ищут и на сайте.',
+    data: [
+      `Топ-фразы без бренда: штрихкоды — ${fmt(pst['Штрихкод'])} визитов, артикулы и коды — ${fmt(pst['Артикул / код'])}, названия «как в прайсе» — ${fmt(pst['Название «как в прайсе»'])}.`,
+      'Клиенты копируют позиции из прайса: «хат.пин 064520», «арт 094648 комплект тетрадей», «198700 циркуль».',
+      `На сайте — ${fmtD(M.search_per_person)} поисков и ${fmtD(M.page_vpp['/search/'])} просмотров выдачи на человека.`,
+    ],
+    todo: [
+      'Проверить, что поиск находит товар по артикулу производителя, внутреннему коду, штрихкоду, полному названию и его фрагментам.',
+      'Учитывать сокращения из прайсов («хат.», «шк.»), раскладку клавиатуры и опечатки; вести словарь синонимов.',
+      'Если точной позиции нет, предлагать аналоги и показывать наличие.',
+    ],
+    kpi: 'Доля поисков без результата; доля поисков, закончившихся добавлением в корзину.',
+  },
+  {
+    id: 'К2', theme: 'Конверсия', prio: 2, effort: 'Высокие', phase: 3,
+    title: 'Быстрый заказ списком и «повторить заказ»',
+    hook: `Корзина — рабочий список: ${fmtD(M.page_vpp['/personal/cart/'], 0)} просмотров на человека, ${pct(M.cart_entry_share)} визитов начинаются сразу с неё.`,
+    data: [
+      `${fmt(M.cart_entry_visits)} визитов начинаются в корзине — ${fmt(M.cart_entry_people)} человек, ≈${fmtD(M.cart_entry_vpp)} визита на человека; почти все — вернувшиеся (${fmt(3491)} визитов).`,
+      `Корзину открывали ${fmt(cartPV[2])} человек (${pct((cartPV[2] / P) * 100)} «людей»), но ${fmt(cartPV[1])} просмотров.`,
+    ],
+    todo: [
+      'Заказ по списку: вставить артикулы и количество или загрузить файл Excel.',
+      'Повтор прошлого заказа и сохранённые шаблоны закупки. Гипотеза: у школ и офисов закупки регулярные.',
+    ],
+    kpi: 'Доля заказов, оформленных списком или повтором; время от первого поиска до заказа; число повторных заказов за 30 и 60 дней.',
+  },
+  {
+    id: 'К3', theme: 'Конверсия', prio: 2, effort: 'Средние', phase: 3,
+    title: 'Возвращать брошенные корзины: менеджер и письмо',
+    hook: `Корзину открывали ${fmt(cartPV[2])} человек, но без данных о заказах потери не оценить — сначала И1.`,
+    data: [
+      `Часть клиентов возвращается в корзину снова и снова: ≈${fmtD(M.cart_entry_vpp)} входа на человека.`,
+      'Сколько корзин заканчивается заказом — неизвестно: нет данных об оформлении.',
+    ],
+    todo: [
+      'После настройки e-commerce выгружать корзины без заказа за 24–48 часов.',
+      'Крупные корзины — менеджеру на звонок; остальные — письмо «в корзине осталось N позиций».',
+    ],
+    kpi: 'Доля возвращённых корзин; выручка, пришедшая после напоминания.',
+  },
+  {
+    id: 'К4', theme: 'Конверсия', prio: 2, effort: 'Средние', phase: 2,
+    title: 'Предложение для нового оптовика: прайс и условия за контакт',
+    hook: `Новые заходят один раз: ${fmtD(M.new_visits_per_person, 2)} визита на человека, отказы ${pct(newRow[3], 0)}.`,
+    data: [
+      `Бренд-страницы (BG, 1Toy, Devente, Kokos) — ${fmt(M.org_brand_entries)} входов из поиска от ${fmt(M.org_brand_people)} человек: ≈1 визит на человека, отказы 9–20%.`,
+      `Страница прайса — ${fmt(byName(D.entry_all.rows, 'https://shop.officesklad.example/prays-list/')[1])} входов; скачиваний файлов за ${DAYS} день — ${fileN}.`,
+    ],
+    todo: [
+      'На бренд-страницах и в прайсе предлагать оставить контакт в обмен на прайс бренда и оптовые условия.',
+      'Договориться о сроке ответа менеджера (в пределах рабочего часа) и о сценарии первого звонка.',
+      'Проверить условия первого заказа: минимальная сумма, доставка в регион, отсрочка.',
+    ],
+    kpi: 'Заявки с бренд-страниц; доля заявок, ставших первым заказом; срок до первого заказа.',
+  },
+  {
+    id: 'У1', theme: 'Удержание', prio: 2, effort: 'Средние', phase: 3,
+    title: 'Сегменты клиентов по частоте и «остывающие» клиенты',
+    hook: `${pct(100 - M.ret_people_share, 0)} «людей» заходят один раз; возвращающийся даёт в ${fmtD(M.ret_visits_per_person / M.new_visits_per_person)} раза больше визитов.`,
+    data: [
+      `Вернувшиеся: ${fmtD(M.ret_visits_per_person)} визита на человека, отказы ${pct(retRow[3])}. Новые: ${fmtD(M.new_visits_per_person, 2)} визита, отказы ${pct(newRow[3], 0)}.`,
+      `Без роботов доля вернувшихся ≈${pct(M.ret_people_share_if_no_robots_lowerbound, 0)}, а не ${pct(M.ret_people_share, 0)} (оценка).`,
+    ],
+    todo: [
+      'После передачи ID клиента (И4) разделить клиентов: активные, остывающие (нет визита или заказа 30–60 дней), потерянные.',
+      'Для каждого сегмента свой сценарий: звонок менеджера, письмо с новинками и остатками, напоминание о типичной закупке.',
+      'Раз в месяц смотреть, сколько клиентов перетекло между сегментами.',
+    ],
+    kpi: 'Доля клиентов с 2+ заказами за 90 дней; доля реактивированных остывающих.',
+  },
+  {
+    id: 'У2', theme: 'Удержание', prio: 2, effort: 'Низкие', phase: 2,
+    title: 'Регулярная рассылка: новинки, остатки, сезонные подборки',
+    hook: `«Новинки» читают самые вовлечённые (${fmtD(M.page_vpp['/new/'], 0)} просмотров на человека), а письма уже приводят на сайт: отказы с e.mail.ru — ${pct(byName(D.referrals.rows, 'e.mail.ru')[3])}.`,
+    data: [
+      `/new/: ${fmt(newPg[1])} просмотров, ${fmt(newPg[2])} человека; ${fmt(245)} визитов начинаются там.`,
+      `e.mail.ru — ${fmt(mailRow[1])} визитов от ${fmt(mailRow[2])} человек (${fmtD(mailRow[1] / mailRow[2])} визита на человека).`,
+      'В запросах уже есть сезонный спрос: настольный календарь на 2027 год, ежедневники, сувенирные брелоки со снежинкой.',
+    ],
+    todo: [
+      `Раз в неделю по вторникам–четвергам (в будни трафик в ${fmtD(M.weekday_weekend_ratio)} раза выше) отправлять новинки, пополнение остатков и подборку к сезону.`,
+      'Все ссылки с UTM; список адресов собирать из клиентской базы и заявок.',
+      'Подготовить подборки к четвёртому кварталу: календари 2027, ежедневники, новогодняя сувенирка.',
+    ],
+    kpi: 'Визиты и заказы из писем; доля вернувшихся среди получателей; отписки.',
+  },
+  {
+    id: 'У3', theme: 'Удержание', prio: 3, effort: 'Низкие', phase: 3,
+    title: 'Личный менеджер для ядра клиентов',
+    hook: `${fmt(M.ret_people)} вернувшихся дают ${pct(M.ret_visit_share, 0)} визитов — их потеря обойдётся дороже всего.`,
+    data: [
+      `Ядро заходит ≈${fmtD(M.ret_visits_per_person, 0)} раз за квартал и почти не уходит с первой страницы (отказы ${pct(retRow[3])}).`,
+      `Основа аудитории — Екатеринбург (${fmt(ekb[2])} человек, ${fmtD(ekb[1] / ekb[2])} визита на человека), Барнаул (${fmtD(cityRow('Барнаул')[1] / cityRow('Барнаул')[2])}), Улан-Удэ (${fmtD(cityRow('Улан-Удэ')[1] / cityRow('Улан-Удэ')[2])}), Кемерово (${fmtD(cityRow('Кемерово')[1] / cityRow('Кемерово')[2])}).`,
+    ],
+    todo: [
+      'По данным CRM выделить топ клиентов по сумме и частоте и закрепить за ними менеджера.',
+      'Перед сезонными пиками заранее связываться и предлагать списки закупки.',
+    ],
+    kpi: 'Доля выручки топ-клиентов; удержание топ-клиентов по кварталам.',
+  },
+  {
+    id: 'П1', theme: 'Привлечение и SEO', prio: 1, effort: 'Низкие', phase: 1,
+    title: 'Закрыть служебные страницы от индекса и проверить редирект на https',
+    hook: `${pct(M.org_service_share)} входов из поиска — на корзину, кабинет и вход; ещё ≈${fmt(Math.round(M.http_entries / 10) * 10)} входов — на http-версию.`,
+    data: [
+      `Из поиска на служебные страницы — ${fmt(M.org_service_entries)} визитов: корзина — 803, кабинет — 176, вход и регистрация — 211, оформление — 37.`,
+      `Входы на http:// — ${fmt(M.http_entries)} визитов (только верхние строки выгрузки).`,
+      'Поиск с пагинацией (/search/?q=ежедневник&…&PAGEN_1=17) — 141 визит от одного человека: возможно, парсер; проверить по логам.',
+    ],
+    todo: [
+      'Закрыть /personal/, /auth/, /search/ и страницы с параметрами (noindex или robots.txt); в Яндекс.Вебмастере посмотреть, какие служебные URL в индексе.',
+      'Настроить 301-редирект с http на https и на основное зеркало.',
+      'Проставить canonical для страниц с параметрами (SECTION_ID, PAGEN).',
+      'Часть входов в корзину — быстрые ссылки под результатом по бренду: проверить, прежде чем закрывать.',
+    ],
+    kpi: 'Число служебных URL в индексе; доля входов из поиска в каталог, бренды и карточки.',
+  },
+  {
+    id: 'П2', theme: 'Привлечение и SEO', prio: 1, effort: 'Средние', phase: 2,
+    title: 'Карточки товаров под запросы по артикулам и штрихкодам',
+    hook: `Хвост из ${fmt(M.ph_tail_phrases)} фраз даёт ${fmt(M.ph_tail)} визитов; в топе без бренда — штрихкоды, коды поставщиков и названия «как в прайсе».`,
+    data: [
+      `Известных запросов ${fmt(M.ph_total_known)}; ещё ${fmt(M.ph_hidden)} визитов (${pct(M.ph_hidden_share)} поиска) пришли без фразы.`,
+      `Хвост — по ≈${fmtD(M.ph_tail / M.ph_tail_phrases, 1)} визита на фразу: это карточки товаров, а не общие запросы.`,
+      'Самая крупная небрендовая фраза — «брелок сувенирный пластик снежинка…» (123 визита).',
+    ],
+    todo: [
+      'В карточке выводить артикул поставщика, внутренний код, штрихкод, полное и сокращённое название.',
+      'Добавить разметку schema.org: sku, gtin, mpn, brand.',
+      'Шаблон title и description: артикул + название + «оптом» + город.',
+      'В Вебмастере отслеживать показы и клики по запросам-артикулам.',
+    ],
+    kpi: 'Клики и показы по товарным запросам; доля входов на карточки; число карточек с трафиком.',
+  },
+  {
+    id: 'П3', theme: 'Привлечение и SEO', prio: 2, effort: 'Средние', phase: 3,
+    title: 'Бренд-страницы и категории «оптом + город» как входы для новых клиентов',
+    hook: `В топ-30 фраз ${pct(M.ph_brand_share_of_top, 0)} — бренд магазина; общих категорийных запросов («тетради оптом») там нет.`,
+    data: [
+      `/brands/bg-russia/: ${fmt(bgEntry[1])} визита, ${fmt(bgEntry[2])} человек, отказы ${pct(bgEntry[3], 0)}; Kokos, 1Toy и Devente — по 60–75 визитов.`,
+      `Бренд магазина — не менее ${pct(M.ph_brand_share_of_known, 0)} известных запросов; в топ-30 — ${pct(M.ph_brand_share_of_top, 0)}.`,
+      `Урал, Сибирь и Дальний Восток — ${pct(M.east_visit_share, 0)} визитов: региональный спрос есть.`,
+    ],
+    todo: [
+      'Шаблон бренд-страницы: описание, категории, прайс бренда, оптовые условия; распространить на остальные бренды.',
+      'Собрать семантику «товар + оптом + город» для городов-лидеров: Екатеринбург, Барнаул, Красноярск, Кемерово, Улан-Удэ, Якутск, Томск.',
+      'Страницы про доставку по регионам: срок, транспортная компания, минимальная сумма.',
+    ],
+    kpi: 'Входы и новые люди на /brands/* и в категориях; позиции по небрендовым запросам; заявки с этих страниц.',
+  },
+  {
+    id: 'П4', theme: 'Привлечение и SEO', prio: 2, effort: 'Средние', phase: 3,
+    title: 'Тест платных каналов: защита бренда, товарные кампании, ретаргетинг',
+    hook: `Рекламных источников в данных нет, а ${pct(M.ph_brand_share_of_known, 0)} известных запросов — бренд.`,
+    data: [
+      'Источники в выгрузке: поиск, «прямые», внутренние, сайты, соцсети. Рекламы и рассылок нет.',
+      `Регионы спроса известны: Урал, Сибирь и Дальний Восток — ${pct(M.east_visit_share, 0)} визитов.`,
+    ],
+    todo: [
+      'Небольшой тестовый бюджет в Яндекс Директе: поиск по бренду, товарные кампании, ретаргетинг на корзину и бренд-страницы.',
+      'Гео-таргетинг по городам-лидерам, UTM на всё; считать стоимость заявки и заказа (после И1).',
+    ],
+    kpi: 'Стоимость заявки и заказа; доля заказов с рекламы; окупаемость.',
+  },
+  {
+    id: 'П5', theme: 'Привлечение и SEO', prio: 3, effort: 'Низкие', phase: 2,
+    title: 'Карты, партнёрские площадки и ИИ-поиск',
+    hook: `2ГИС — ${fmt(gisRow[1])} визита, Яндекс.Карты — ${fmt(byName(D.engines.rows, 'Яндекс.Карты')[1])}; ИИ-ассистенты — ${fmt(D.ai.total[1])} визитов, из них Алиса — ${fmt(byName(D.ai.rows, 'alice.yandex.ru')[1])}.`,
+    data: [
+      `link.2gis.ru: ${fmt(gisRow[1])} визита, ${fmt(gisRow[2])} человек (${pct(byName(D.referrals.rows, 'link.2gis.ru')[4], 0)} роботов); Яндекс.Карты — ${fmt(byName(D.engines.rows, 'Яндекс.Карты')[1])} визита.`,
+      `Партнёрские сайты: saleykt.ru — ${fmt(refN('saleykt.ru')[1])} визитов (${fmt(refN('saleykt.ru')[2])} человек), 24-ok.ru — ${fmt(refN('24-ok.ru')[1])} (${fmt(refN('24-ok.ru')[2])}), samson.team — ${fmt(refN('samson.team')[1])} (${fmt(refN('samson.team')[2])}).`,
+      `Соцсети: ${fmt(byName(D.sources.rows, 'Переходы из социальных сетей')[1])} визита (ВКонтакте, ${fmt(byName(D.sources.rows, 'Переходы из социальных сетей')[2])} человек).`,
+    ],
+    todo: [
+      'Заполнить карточку в Яндекс Бизнесе (сайт, ассортимент, «Товары и услуги»); ссылки в Яндексе и 2ГИС — с UTM.',
+      'Выяснить, что за площадки saleykt.ru, 24-ok.ru и samson.team, и договориться о размещении каталога и прайса.',
+      'Подготовить страницу с реквизитами, условиями опта и ответами на частые вопросы: её используют и люди, и ИИ-ассистенты.',
+      'Соцсети и мессенджеры — по ресурсу, после запуска рассылок.',
+    ],
+    kpi: 'Визиты и заявки по каждому каналу; упоминания магазина в ответах ассистентов.',
+  },
+  {
+    id: 'П6', theme: 'Привлечение и SEO', prio: 3, effort: 'Низкие', phase: 2,
+    title: 'Повторить августовский всплеск и подготовиться к четвёртому кварталу',
+    hook: `13–14 августа — живой всплеск +${M.aug_peak_uplift_pct}% к обычным четвергу и пятнице; причина в выгрузке не видна.`,
+    data: [
+      `Живых визитов ${fmt(M.aug_peak_clean[0])} и ${fmt(M.aug_peak_clean[1])} против ≈${fmt(M.thu_fri_median_clean)} в обычные дни; роботов ${pct(10.78)} и ${pct(2.18)}.`,
+      `Живой трафик в день: август ${fmt(MM[8].clean_pd)}, сентябрь ${fmt(MM[9].clean_pd)}, октябрь ${fmt(MM[10].clean_pd)}.`,
+      `Поиск в день: ${fmt(searchPerDay(8))} → ${fmt(searchPerDay(9))} → ${fmt(searchPerDay(10))} (октябрь ниже августа на ${Math.round((1 - searchPerDay(10) / searchPerDay(8)) * 100)}%).`,
+    ],
+    todo: [
+      'Выяснить, что произошло 13–14 августа: рассылка, публикация, акция или сезон «Школа».',
+      'Составить календарь сезонов и акций на ноябрь–декабрь и на «Школу 2027».',
+      'Готовить подборки и рассылки заранее; акции ставить на вторник–четверг.',
+    ],
+    kpi: 'Живые визиты в день по неделям; доля сезонных подборок во входах.',
+  },
+];
+
+/* filters */
+const state = { theme: 'Все', prio: 0 };
+const recEls = [];
+function renderFilters() {
+  const box = mount('filters-mount');
+  box.replaceChildren();
+  const chip = (label, pressed, on) => h('button', { type: 'button', class: 'fchip', 'aria-pressed': String(pressed), onclick: on }, label);
+  const g1 = h('div', { class: 'fgroup' }, h('span', { class: 'fl' }, 'Тема'),
+    ...['Все', ...THEMES].map((t) => chip(t, state.theme === t, () => { state.theme = t; apply(); renderFilters(); })));
+  const g2 = h('div', { class: 'fgroup' }, h('span', { class: 'fl' }, 'Приоритет'),
+    chip('Все', state.prio === 0, () => { state.prio = 0; apply(); renderFilters(); }),
+    ...[1, 2, 3].map((p) => chip(PRIO[p], state.prio === p, () => { state.prio = p; apply(); renderFilters(); })));
+  const all = h('div', { class: 'fgroup fall' },
+    h('button', { type: 'button', class: 'fchip', onclick: () => recEls.forEach((e) => { if (!e.el.hidden) e.el.open = true; }) }, 'Развернуть всё'),
+    h('button', { type: 'button', class: 'fchip', onclick: () => recEls.forEach((e) => { e.el.open = false; }) }, 'Свернуть всё'));
+  box.append(g1, g2, all);
+}
+function apply() {
+  let n = 0;
+  recEls.forEach(({ el, r }) => {
+    const ok = (state.theme === 'Все' || r.theme === state.theme) && (state.prio === 0 || r.prio === state.prio);
+    el.hidden = !ok;
+    if (ok) n++;
+  });
+  document.getElementById('rec-empty').hidden = n !== 0;
+}
+(function () {
+  const list = mount('rec-mount');
+  REC.forEach((r) => {
+    const ul = (items) => h('ul', null, items.map((i) => h('li', null, rich(i))));
+    const el = h('details', { class: 'rec', open: r.prio === 1 },
+      h('summary', null,
+        h('span', { class: 'rid' }, r.id),
+        h('span', { class: 'rt' }, r.title),
+        h('span', { class: 'rtags' },
+          h('span', { class: 'pill p' + r.prio }, PRIO[r.prio]),
+          h('span', { class: 'pill' }, r.theme),
+          h('span', { class: 'pill' }, 'Усилия: ' + r.effort.toLowerCase()),
+          h('span', { class: 'chev' }, '▶')),
+        h('span', { class: 'rhook' }, rich(r.hook))),
+      h('div', { class: 'rbody' },
+        h('div', null, h('h4', null, 'Что в данных'), ul(r.data)),
+        h('div', null, h('h4', null, 'Что сделать'), ul(r.todo)),
+        h('div', null, h('h4', null, 'Как поймём, что сработало'), h('p', null, rich(r.kpi)))));
+    recEls.push({ el, r });
+    list.append(el);
+  });
+  list.append(h('p', { class: 'foot', id: 'rec-empty', hidden: true }, 'Нет идей под выбранные фильтры.'));
+  renderFilters();
+})();
+window.addEventListener('beforeprint', () => recEls.forEach((e) => { e.el.open = true; }));
+
+/* ===== 11 plan + baseline ===== */
+(function () {
+  mount('road-mount').append(...PHASES.map((ph) =>
+    h('div', { class: 'col' },
+      h('h3', null, ph.t),
+      h('div', { class: 'when' }, ph.s),
+      h('ol', null, REC.filter((r) => r.phase === ph.n).sort((a, b) => a.prio - b.prio).map((r) => h('li', null, h('b', null, r.id + ' '), r.title))))));
+
+  const MMs = MM;
+  const base = [
+    ['Доля роботов', pct(M.robot_pct), `${approx(M.robot_visits)} визитов; таблицы «Устройства» и «Динамика по дням»`],
+    ['Отказы без роботов (оценка)', '≈' + pct(M.bounce_adj), `в Метрике ${pct(M.bounce, 2)}; допущение — робот = отказ`],
+    ['Вернувшиеся, % людей', pct(M.ret_people_share), `≈${pct(M.ret_people_share_if_no_robots_lowerbound, 0)} без роботов (оценка)`],
+    ['Визитов на вернувшегося', fmtD(M.ret_visits_per_person), `у новых — ${fmtD(M.new_visits_per_person, 2)}`],
+    ['Поисков на сайте на визит', fmtD(M.search_per_visit, 2), `${fmt(GOAL_SEARCH)} за период`],
+    ['Живые визиты в день: август / сентябрь / октябрь', `${fmt(MMs[8].clean_pd)} / ${fmt(MMs[9].clean_pd)} / ${fmt(MMs[10].clean_pd)}`, 'оценка без роботов'],
+    ['Поиск в день: август / сентябрь / октябрь', `${fmt(searchPerDay(8))} / ${fmt(searchPerDay(9))} / ${fmt(searchPerDay(10))}`, 'визитов из поисковых систем'],
+    ['Бренд в известных запросах', `не менее ${pct(M.ph_brand_share_of_known)}`, 'по топ-30 фраз; полную долю даст Вебмастер'],
+    ['Служебные страницы среди входов из поиска', pct(M.org_service_share), `${fmt(M.org_service_entries)} визитов`],
+    ['Клики по телефону / e-mail', `${phoneN} / ${emailN}`, `за ${DAYS} день`],
+    ['Конверсия в заказ, средний чек, выручка', 'нет данных', 'появятся после И1'],
+    ['Доля поисков без результата', 'нет данных', 'появится после И5'],
+  ];
+  mount('baseline-mount').append(
+    card({
+      cls: 'c12',
+      title: 'Точка отсчёта на 20.10.2026',
+      sub: 'С этими значениями сравниваем результат через 90 дней.',
+      body: h('div', { class: 'tbl-wrap', style: { maxHeight: 'none' } }, tableEl(['Показатель', 'Сейчас', 'Примечание'], base, [1])),
+    })
+  );
+})();
+
+/* ===== 12 limits + UX parking lot ===== */
+(function () {
+  const L = [
+    '**Электронная коммерция выключена.** Заказов, сумм и среднего чека в данных нет; конверсию в деньгах посчитать нельзя.',
+    `**Счётчик, похоже, запущен около 21 июля** (в этот день 6 визитов). Давние клиенты при первом визите считаются «новыми», поэтому доля вернувшихся — нижняя граница.`,
+    `**Роботы исключены не везде.** Доля роботов (${pct(M.robot_pct)}) взята из таблицы «Устройства» и сходится с суммой по дням: ${fmt(M.robot_visits)} и ${fmt(D.daily_sum_robot_visits)} визитов.`,
+    `**Оценки помечены знаком ≈ или словом «оценка».** Отказы без роботов считаем, что каждый робот-визит — отказ. Людей без роботов — что один робот-визит равен одному «человеку» (на всплеске 17–20 сентября ${fmtD(M.sep17_people_per_robot_visit, 2)}). Роботов вычли из «прямых»: там ≈${pct(M.robots_direct_share, 0)} из них.`,
+    '**В выгрузке видны только верхние строки:** регионов 10 из 449, городов 10 из 968, страниц 8 из 34 648, страниц входа 20 из 24 340, поисковых фраз 30 из 7 862. Выводы про «хвост» сделаны по итогам таблиц.',
+    `**Фраза скрыта у ${pct(M.ph_hidden_share)} визитов из поиска.** Брендовые строки с одинаковым текстом объединены.`,
+    '**Таблица «Протоколы» показывает домен, а не протокол.** Про http судим по страницам входа.',
+    '**Периоды таблиц разные.** Основной период — 22.07–20.10. Таблицы по месяцам и дням захватывают 01.07–21.10, а в графиках по месяцам июль — 10 дней, октябрь — 21.',
+    `**В «Источниках» ${fmt(M.src_visits_no_source)} визита без источника:** сумма по строкам ${fmt(srcTot)} при ${fmt(V)} визитов.`,
+    '**Интерпретации помечены словами «вероятно», «похоже», «возможно»:** внутренние переходы, закладки на ntp.msn.com, служебные страницы в выдаче, повторные заходы на регистрацию.',
+  ];
+  const UX = [
+    `**Вход:** /auth/ — ${fmt(authPV[1])} просмотров, ${fmtD(M.page_vpp['/auth/'])} на человека; людей на странице входа больше (${pct(M.reach['Вход /auth/'][1])}), чем в корзине (${pct(M.reach['Корзина'][1])}); ${fmt(M.auth_entries)} визитов начинаются на входе.`,
+    `**Регистрация:** ${fmt(M.auth_register_visits)} визита от ${M.auth_register_people} человек — повторные попытки или технический трафик.`,
+    `**Корзина:** ${fmtD(M.page_vpp['/personal/cart/'], 0)} просмотров на человека.`,
+    `**Страница поиска:** ${pct(M.page_view_share['/search/'])} всех просмотров.`,
+    `**Смартфоны:** ${pct(M.dev_share_visits['Смартфоны'])} визитов, ${fmtD(M.dev_vpp['Смартфоны'], 2)} визита на человека.`,
+    `**Главная:** до неё доходят ${pct(M.reach['Главная /'][1])} «людей»; остальные заходят сразу в карточки и бренд-страницы.`,
+  ];
+  mount('limits-mount').append(
+    card({ cls: 'c7', title: 'Что учитывать при чтении', body: h('ul', { class: 'plain' }, L.map((x) => h('li', null, rich(x)))) }),
+    card({
+      cls: 'c5', title: 'Отложено на этап UI/UX',
+      sub: 'Гипотезы из данных без решений: для проверки исследованием и записями сессий.',
+      body: h('ul', { class: 'plain' }, UX.map((x) => h('li', null, rich(x)))),
+    })
+  );
+})();
+
+/* ===== theme toggle ===== */
+(function () {
+  const btn = document.getElementById('theme-btn');
+  const root = document.documentElement;
+  btn.addEventListener('click', () => {
+    const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  });
+})();
+
+</script>
+</body>
+</html>

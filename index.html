@@ -4,76 +4,84 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Тестовое задание — STEREO AI</title>
+<title>Решение тестового задания — Даниил</title>
 <style>
-:root{--bg:#0b0b0d;--card:#15151a;--card2:#1c1c23;--ink:#ececf1;--mute:#9a9ca8;--line:#2a2a33;--a1:#a855f7;--a2:#ec4899;--a3:#6366f1}
+:root{--bg:#0b0b0d;--card:#15151a;--ink:#ececf1;--mute:#a3a5b0;--line:#2a2a33;--a1:#17d230;--a1-soft:rgba(23,210,48,.16);--a1-line:rgba(23,210,48,.45);--on-a1:#06200b}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(900px 500px at 85% -10%,rgba(168,85,247,.18),transparent 60%),radial-gradient(700px 400px at -10% 10%,rgba(99,102,241,.14),transparent 60%),var(--bg);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}
+body{margin:0;background:radial-gradient(900px 500px at 85% -10%,rgba(23,210,48,.14),transparent 60%),radial-gradient(700px 400px at -10% 10%,rgba(23,210,48,.08),transparent 60%),var(--bg);color:var(--ink);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}
 main{max-width:760px;margin:0 auto;padding:40px 16px 64px}
 main>*{margin-top:0}
-.logo{display:inline-block;font-weight:800;font-size:44px;letter-spacing:.5px;background:linear-gradient(90deg,var(--a1),var(--a2) 30%,var(--a3) 60%,var(--a1) 80%,var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{display:inline-block;font-weight:800;font-size:44px;letter-spacing:.5px;color:var(--a1)}
 h1{font-size:30px;line-height:1.2;margin:8px 0 24px}
-a{color:#c4a6ff}
-.btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 12px}
-.btn{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;text-decoration:none;line-height:1.3;box-shadow:0 6px 24px rgba(168,85,247,.25);transition:transform .15s,box-shadow .15s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(236,72,153,.35)}
-.btn svg{width:26px;height:26px;flex:none;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.btn b{display:block;font-size:17px}
-.btn small{display:block;font-size:13px;opacity:.85}
-.btn .go{margin-left:auto;width:20px;height:20px}
-.box{border-radius:14px;background:var(--card);border:1px solid rgba(168,85,247,.4);overflow:hidden;margin:0 0 12px}
-.goal{padding:20px 22px;background:linear-gradient(120deg,rgba(168,85,247,.22),rgba(236,72,153,.16),rgba(99,102,241,.2));font-size:21px;font-weight:700;line-height:1.3}
+a{color:#5fe877}
+a:focus-visible,button:focus-visible{outline:3px solid var(--a1);outline-offset:3px;border-radius:6px}
+.box{border-radius:14px;background:var(--card);border:1px solid var(--a1-line);margin:0 0 12px}
+.goal{display:flex;align-items:flex-start;gap:12px;padding:20px 22px;border-radius:14px 14px 0 0;background:linear-gradient(120deg,rgba(23,210,48,.2),rgba(23,210,48,.06));font-size:21px;font-weight:700;line-height:1.3}
 .goal small{display:block;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:4px}
-.step{display:flex;gap:16px;align-items:center;padding:16px 22px;border-top:1px solid var(--line)}
-.ico{width:46px;height:46px;flex:none;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--a1),var(--a2))}
-.ico svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* «?» next to the goal: the note shows on hover, on keyboard focus and on a tap */
+.hint{position:relative;flex:none;margin-top:22px}
+.hint button{display:grid;place-items:center;width:26px;height:26px;padding:0;border:1.5px solid var(--a1);border-radius:50%;background:transparent;color:var(--a1);font:700 15px/1 system-ui,sans-serif;cursor:help}
+.hint button:hover,.hint button[aria-expanded=true]{background:var(--a1);color:var(--on-a1)}
+.tip{position:absolute;z-index:5;top:calc(100% + 10px);left:50%;transform:translateX(-50%);width:min(340px,80vw);padding:12px 14px;border-radius:10px;background:#1f2a21;border:1px solid var(--a1-line);color:var(--ink);font-size:14px;font-weight:400;line-height:1.5;box-shadow:0 10px 30px rgba(0,0,0,.45);visibility:hidden;opacity:0;transition:opacity .15s}
+.hint:hover .tip,.hint:focus-within .tip,.hint button[aria-expanded=true]+.tip{visibility:visible;opacity:1}
+.step{display:flex;gap:16px;align-items:flex-start;padding:18px 22px;border-top:1px solid var(--line)}
+.ico{width:46px;height:46px;flex:none;border-radius:12px;display:grid;place-items:center;background:var(--a1)}
+.ico svg{width:24px;height:24px;stroke:var(--on-a1);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .step b{display:block;font-size:18px;line-height:1.3;margin-bottom:4px}
-.step p{margin:0;color:#cfd0d8;line-height:1.5}
-.note{display:flex;gap:10px;align-items:center;color:var(--mute);margin:4px 0 0;padding:0 20px;font-size:15px}
-.note svg{width:20px;height:20px;flex:none;stroke:var(--mute);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:40px 0 12px}
-.links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.lnk{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:18px 10px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--ink);text-decoration:none}
-.lnk:hover{border-color:var(--a1)}
-.lnk img{width:52px;height:52px;border-radius:12px;object-fit:cover}
-.lnk img.round{border-radius:50%}
-.lnk b{display:block;font-size:15px;line-height:1.3}
-.lnk span{display:block;font-size:13px;line-height:1.4;color:var(--mute)}
-@media (max-width:560px){.btns{grid-template-columns:1fr}.links{grid-template-columns:1fr 1fr}}
+.step p{margin:0 0 10px;color:#d4d5dc;line-height:1.5}
+.open{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;background:var(--a1);color:var(--on-a1);font-weight:700;font-size:15px;text-decoration:none}
+.open:hover{background:#3fe055}
+.open svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.url{display:block;margin-top:6px;font-size:13px;color:var(--mute);word-break:break-all}
+ol.recs{margin:4px 0 0;padding-left:20px;color:#d4d5dc;font-size:15px;line-height:1.5}
+ol.recs li{margin:0 0 10px;padding-left:2px}
+ol.recs b{display:inline;font-size:15px;color:var(--ink)}
+ol.recs span{display:block;color:var(--mute);font-size:14px}
+.more{margin:14px 0 0;font-size:14px;color:var(--mute)}
+@media (max-width:560px){.logo{font-size:36px}h1{font-size:25px}.goal{font-size:19px}.step{padding:16px}.tip{left:auto;right:-8px;transform:none}}
 </style>
 </head>
 <body>
 <main>
 <div class="logo">STEREO AI</div>
-<h1>Тестовое задание 26.10.26</h1>
+<h1>Решение тестового задания от Даниила</h1>
 
 <div class="box">
-<div class="goal"><small>Задача</small>Увеличить прибыль магазина</div>
+<div class="goal"><div><small>Задача</small>Увеличить прибыль магазина</div>
+<div class="hint"><button type="button" aria-expanded="false" aria-describedby="goal-tip" aria-label="Пояснение к решению">?</button>
+<div class="tip" id="goal-tip" role="tooltip">Все решения ниже исходят из аналитики Метрики и UI/UX и являются исключительно гипотезами по увеличению продаж, а обновлённый сайт и его механики — концепцией того, как это должно выглядеть.</div></div></div>
 
 <div class="step"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></div>
-<div><b>1. Данные</b><p>Сведите данные в HTML-дашборд, озвучьте свои выводы и предложите изменения на сайте.</p></div></div>
+<div><b>1. Данные</b><p>HTML-дашборд по выгрузке Яндекс.Метрики за 91 день: ключевые показатели, роботы, аудитория, источники, поведение, поисковые запросы, цели — и выводы с точками роста.</p>
+<a class="open" href="dashboard/">Открыть дашборд <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a></div></div>
 
 <div class="step"><div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M9 9v11"/></svg></div>
-<div><b>2. UI/UX</b><p>Сгенерируйте картинкой или сверстайте свою версию сайта.</p></div></div>
+<div><b>2. UI/UX</b><p>Обновлённая версия магазина — рабочий прототип: поиск, каталог, корзина и заказ работают прямо в браузере.</p>
+<a class="open" href="https://wegorish.github.io/test-zadanie/kanctovar/">Открыть сайт <svg viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
+<span class="url">wegorish.github.io/test-zadanie/kanctovar/</span></div></div>
 
 <div class="step"><div class="ico"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/></svg></div>
-<div><b>3. Рекомендации</b><p>В свободной форме дайте рекомендации и аргументируйте действия.</p></div></div>
-</div>
-
-<div class="btns">
-<a class="btn" href="kanctovar/"><svg viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg><span><b>Сайт магазина</b><small>Открыть стенд</small></span><svg class="go" viewBox="0 0 24 24"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
-<a class="btn" href="metrika.md" download="metrika.md"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg><span><b>Данные Метрики</b><small>Скачать файл · 3 месяца</small></span><svg class="go" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
-</div>
-
-<p class="note"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>Для выполнения достаточно бесплатной версии ChatGPT или Claude.</p>
-
-<h2>Мы в Telegram</h2>
-<div class="links">
-<a class="lnk" href="https://t.me/pro_stereo_ai"><img src="icons/channel.jpg" alt=""><div><b>Про STEREO AI</b><span>канал</span></div></a>
-<a class="lnk" href="https://t.me/stereo_practicum_bot"><img src="icons/practicum.jpg" alt=""><div><b>STEREO Практикум</b><span>@stereo_practicum_bot</span></div></a>
-<a class="lnk" href="https://t.me/stereo_dictator_bot"><img src="icons/dictator.jpg" alt=""><div><b>STEREO Dictator</b><span>@stereo_dictator_bot</span></div></a>
-<a class="lnk" href="https://t.me/stereo_sync_bot"><img src="icons/sync.jpg" alt=""><div><b>STEREO Sync</b><span>@stereo_sync_bot</span></div></a>
+<div><b>3. Рекомендации</b><p>Магазин — рабочий инструмент постоянных оптовиков: они ищут, собирают корзину и возвращаются. Сайт пересобран под этот сценарий.</p>
+<ol class="recs">
+<li><b>Поиск на языке клиента.</b><span>121 тыс. поисков, 2,1 на визит, но штрихкод, складской код, опечатка или «подст. д/книг» давали ноль. Теперь находятся коды, штрихкоды, артикулы, сокращения из прайса, словоформы, другая раскладка; по точному коду — сразу карточка.</span></li>
+<li><b>Корзина без входа, вход — только при оформлении.</b><span>/auth/ — 15,3 просмотра на человека, а гостю корзина была закрыта. Гостевая корзина сохраняется после входа.</span></li>
+<li><b>Корзина как рабочий список.</b><span>35 просмотров корзины на человека, вернувшиеся дают 62 % визитов. Количество и «В корзину» всегда на виду, заказ коробками, «Заказ списком» из кодов или файла, «Повторить заказ», индикатор минимальной суммы.</span></li>
+<li><b>Условия опта — на первом экране.</b><span>Новые посетители: 1,04 визита и 53 % отказов. На главной и под шапкой — минимальный заказ, отправка в регионы, цены для зарегистрированных.</span></li>
+<li><b>Регионы и доставка.</b><span>53 % визитов — Урал, Сибирь, Дальний Восток. Раздел о доставке в регионы через ТК и выбор города вместо «Определение».</span></li>
+<li><b>Мобильная версия.</b><span>1,74 визита на человека со смартфона против 3,05 с ПК. Поиск во всю ширину под логотипом, меню без прокрутки вбок, зум, блок покупки под фото.</span></li>
+<li><b>Человек в тупиках.</b><span>3 клика по телефону за 91 день: номер не был ссылкой. Телефон кликабелен везде, в пустой корзине и пустом поиске — «Позвоните или оставьте список менеджеру».</span></li>
+<li><b>Измерять, чтобы проверить гипотезы.</b><span>Подготовлены цели и электронная коммерция для Метрики: поиск, подсказки, корзина, оформление, заказ списком, звонки.</span></li>
+</ol>
+<p class="more">Подробно — изменение, гипотеза и метрика проверки: <a href="https://github.com/wegorish/test-zadanie/pull/1">описание pull request</a>.</p></div></div>
 </div>
 </main>
+<script>
+// On touch screens there is no hover: a tap on «?» opens the note, a tap elsewhere or Esc closes it.
+(function(){var b=document.querySelector('.hint button');if(!b)return;
+function set(v){b.setAttribute('aria-expanded',String(v));}
+b.addEventListener('click',function(e){e.stopPropagation();set(b.getAttribute('aria-expanded')!=='true');});
+document.addEventListener('click',function(){set(false);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false);});})();
+</script>
 </body>
 </html>
