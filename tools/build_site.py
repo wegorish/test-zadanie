@@ -381,6 +381,12 @@ def delivery_regions():
             'Позвоните — подскажем сроки и стоимость.</p></section>' % (MIN_ORDER, rows))
 
 
+def version(name):
+    """Short hash of a file of the site, for cache-busting links to it."""
+    import hashlib
+    return hashlib.sha1(read(os.path.join(ROOT, name)).encode('utf-8')).hexdigest()[:10]
+
+
 def patch_page(rel, text, products):
     here = page_url(rel)
 
@@ -450,10 +456,13 @@ def patch_page(rel, text, products):
         text = between(text, 'regions', delivery_regions(), anchor_before=anchor)
 
     # Scripts: settings before demo.js, the search modules after it (they use what demo.js exposes)
-    scripts = ''.join('<script defer="True" src="%s%s"></script>' % (BASE, name)
+    # ?v=<content hash>: GitHub Pages caches files ~10 min, a new page must not run with an old script.
+    scripts = ''.join('<script defer="True" src="%s%s?v=%s"></script>' % (BASE, name, version(name))
                       for name in ('js/config.js', 'js/metrika.js', 'demo.js', 'js/catalog.js', 'js/filter.js', 'js/product.js', 'js/order-list.js',
                                    'js/search.js', 'js/search-ui.js'))
     text = re.sub(r'(?:<script defer="True" src="%s[^"]*"></script>)+' % re.escape(BASE), scripts, text)
+    text = re.sub(r'<link href="%sdemo\.css(?:\?v=[0-9a-f]+)?" rel="stylesheet"/>' % re.escape(BASE),
+                  '<link href="%sdemo.css?v=%s" rel="stylesheet"/>' % (BASE, version('demo.css')), text)
     # The search index and the abbreviation list are JSON files of this site, read with fetch()
     text = text.replace("connect-src 'none'", "connect-src 'self'")
     return text

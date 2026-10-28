@@ -287,7 +287,7 @@ body.os-filter-open{overflow:hidden}
 @media (max-width:800px){
  .os-hero{padding:24px 16px}.os-hero h1{font-size:22px;margin-bottom:16px}
  .os-hero-terms{grid-template-columns:1fr;gap:8px}
- .os-terms{font-size:13px}.os-terms ul{justify-content:flex-start;padding:8px 12px}
+ .os-terms{font-size:13px}.os-terms ul{justify-content:flex-start;gap:4px 16px;padding:8px 12px}.os-terms li+li::before{content:none}   /* a wrapped line must not start with a dot */
 }
 /* ---- Design refresh: one typeface, 8 px rhythm, 8 px corners, AA contrast, visible focus. Layout and logo unchanged. ---- */
 /* one typeface: the theme's Roboto everywhere, form controls included; bold text uses the bold face, not a faux bold */
