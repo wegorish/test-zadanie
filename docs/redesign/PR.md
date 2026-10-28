@@ -53,10 +53,10 @@
 
 | | До | После |
 |---|---|---|
-| Главная, 390 px | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/before/home-390.jpg) | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/after/home-390.jpg) |
-| Поиск с опечаткой, 1280 px | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/before/search-1280.jpg) | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/after/search-1280.jpg) |
-| Раздел, 1280 px | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/before/section-1280.jpg) | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/after/section-1280.jpg) |
-| Карточка, 390 px | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/before/product-390.jpg) | ![](https://raw.githubusercontent.com/stereosam/test-zadanie/redesign-ux/docs/redesign/screens/after/product-390.jpg) |
+| Главная, 390 px | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/before/home-390.jpg) | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/after/home-390.jpg) |
+| Поиск с опечаткой, 1280 px | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/before/search-1280.jpg) | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/after/search-1280.jpg) |
+| Раздел, 1280 px | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/before/section-1280.jpg) | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/after/section-1280.jpg) |
+| Карточка, 390 px | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/before/product-390.jpg) | ![](https://raw.githubusercontent.com/wegorish/test-zadanie/redesign-ux/docs/redesign/screens/after/product-390.jpg) |
 
 ## Что не сделано или сделано заглушкой
 
